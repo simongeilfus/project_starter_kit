@@ -1,0 +1,16 @@
+#include "cinder/app/App.h"
+#include "cinder/app/RendererGl.h"
+
+#include "cinder/gl/wrapper.h"
+#include "cinder/gl/draw.h"
+#include "cinder/gl/scoped.h"
+#include "cinder/gl/Batch.h"
+#include "cinder/gl/Shader.h"
+
+#include "cinder/Log.h"
+#include "cinder/CinderImGui.h"
+#include "cinder/CameraUi.h"
+#include "cinder/Rand.h"
+#include "cinder/Perlin.h"
+#include "cinder/Utilities.h"
+#include "cinder/FileWatcher.h"
