@@ -1,7 +1,7 @@
-cinder https://github.com/cinder/Cinder.git --recursive
+cinder https://github.com/cinder/Cinder.git
 glfw https://github.com/glfw/glfw.git
 sokol https://github.com/floooh/sokol.git
-imgui https://github.com/ocornut/ImGui.git --branch docking
+imgui https://github.com/ocornut/ImGui.git
 glm https://github.com/g-truc/glm.git
 json https://github.com/nlohmann/json.git
 liveplusplus https://github.com/simongeilfus/liveplusplus.git
