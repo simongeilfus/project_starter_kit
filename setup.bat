@@ -72,6 +72,10 @@ if %commandc% lss 1 (
     echo:
     echo   Error: No commands were build
     goto print_help
+) else (
+    @rem otherwise add default ending commands
+    set /A commandc+=1
+    set "commandv[!commandc!]=git submodule update --init --recursive"
 )
 
 @rem print commands
