@@ -64,29 +64,37 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/glm)
     list(APPEND THIRD_PARTY_LIBRARIES glm)
     add_library(glm INTERFACE)
     target_include_directories(glm INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/glm")
+    set(GLM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/glm")
 endif()
 
 # imgui
 # automatically add imgui if the folder exists
 # TODO: should check for potential conflicts with cinder/imgui
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
-    list(APPEND THIRD_PARTY_LIBRARIES imgui)
-    set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
-    set(IMGUI_FILES
-        "${IMGUI_DIR}/imgui.cpp"
-        "${IMGUI_DIR}/imgui_demo.cpp"
-        "${IMGUI_DIR}/imgui_draw.cpp"
-        "${IMGUI_DIR}/imgui_tables.cpp"
-        "${IMGUI_DIR}/imgui_widgets.cpp"
-        "${IMGUI_DIR}/imconfig.h"
-        "${IMGUI_DIR}/imgui.h"
-        "${IMGUI_DIR}/imgui_internal.h"
-        "${IMGUI_DIR}/imstb_rectpack.h"
-        "${IMGUI_DIR}/imstb_textedit.h"
-        "${IMGUI_DIR}/imstb_truetype.h")
-    add_library(imgui STATIC ${IMGUI_FILES})
-    target_include_directories(imgui PUBLIC ${IMGUI_DIR})
-    set_property(TARGET imgui PROPERTY FOLDER "third_party")
+    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cinder)
+        list(APPEND THIRD_PARTY_LIBRARIES imgui)
+        set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
+        set(IMGUI_FILES
+            "${IMGUI_DIR}/imgui.cpp"
+            "${IMGUI_DIR}/imgui_demo.cpp"
+            "${IMGUI_DIR}/imgui_draw.cpp"
+            "${IMGUI_DIR}/imgui_tables.cpp"
+            "${IMGUI_DIR}/imgui_widgets.cpp"
+            "${IMGUI_DIR}/imconfig.h"
+            "${IMGUI_DIR}/imgui.h"
+            "${IMGUI_DIR}/imgui_internal.h"
+            "${IMGUI_DIR}/imstb_rectpack.h"
+            "${IMGUI_DIR}/imstb_textedit.h"
+            "${IMGUI_DIR}/imstb_truetype.h")
+        add_library(imgui STATIC ${IMGUI_FILES})
+        target_include_directories(imgui PUBLIC ${IMGUI_DIR})
+        set_property(TARGET imgui PROPERTY FOLDER "third_party")
+    else()
+        list(APPEND THIRD_PARTY_LIBRARIES imgui)
+        add_library(imgui INTERFACE)
+        set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+        target_include_directories(imgui INTERFACE "${IMGUI_DIR}")
+    endif()
 endif()
 
 # imgui_utils
