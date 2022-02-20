@@ -1,12 +1,14 @@
-import os, sys, shutil, glob, argparse
+import os, sys, shutil, glob, argparse, subprocess
 
 # script arguments
 parser = argparse.ArgumentParser()
-parser.add_argument( 'template', choices=['cinder', 'glfw', 'cpp'], help='specifies the template to be used to generate the project' )
+parser.add_argument( 'template', choices=['cinder', 'glfw', 'sokol', 'cpp'], help='specifies the template to be used to generate the project' )
 parser.add_argument( 'project_name', help='specifies the name of the project' )
 parser.add_argument( '--pch', action='store_true', help='specifies whether the project needs to be generated with pch files' )
 parser.add_argument( '--cmake', action='store_true', help='specifies whether the project needs a custom cmake config file' )
 parser.add_argument( '--folders', action='store_true', help='specifies whether the project wants sources to be created inside subfolders instead of at the project root' )
+parser.add_argument( '--configure', action='store_true', help='specifies whether solution need to be generated after creating the project' )
+parser.add_argument( '--configure++', dest='configureplusplus', action='store_true', help='specifies whether solution need to be generated after creating the project' )
 args = parser.parse_args()
 
 # make sure the project doesn't exist
@@ -79,3 +81,8 @@ with open( project_source_path, 'w' ) as file:
   file.write( project_file )
 
 print( "New %s project created at %s" % ( args.template, project_dir ) )
+  
+if args.configureplusplus :
+  os.system( 'configure.bat live++' )
+if args.configure :
+  os.system( 'configure.bat' )

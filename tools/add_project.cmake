@@ -14,7 +14,7 @@ function(add_project PROJECT_NAME DEST_FOLDER_NAME)
     else()
         target_include_directories(${PROJECT_NAME} PUBLIC "${DIR}")
     endif()
-    target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+    target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
     # link common and third_party libs
     target_link_libraries(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_LIBRARIES})

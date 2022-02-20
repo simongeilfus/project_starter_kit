@@ -27,15 +27,14 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-set cmake_args=
+set cmake_args=-UENABLE_LPP
 
 @rem parsing arguments
 @rem -----------------------------------
 :parse_args
 if "%~1" == "" goto end_parse_args
-if "%~1" == "live++" (
-    set cmake_args=-UENABLE_LPP -DENABLE_LPP=ON
-) else ( goto print_options )
+if "%~1" == "live++" set cmake_args=%cmake_args% -DENABLE_LPP=ON
+if "%~1" == "liveplusplus" set cmake_args=%cmake_args% -DENABLE_LPP=ON
 SHIFT
 goto parse_args
 :end_parse_args
@@ -43,16 +42,6 @@ goto parse_args
 @rem run cmake
 @rem -----------------------------------
 cmake -S . -B ./build -G "Visual Studio 16 2019" -A x64 !cmake_args!
-
-@rem help message
-@rem -----------------------------------
-goto end
-:print_options
-echo Generates the project's solution files with optional parameters
-echo:
-echo  configure [live++]
-echo:
-echo    live++         Adds support for Live++
 
 @rem end
 @rem -----------------------------------

@@ -1,0 +1,15 @@
+cinder https://github.com/cinder/Cinder.git --recursive
+glfw https://github.com/glfw/glfw.git
+sokol https://github.com/floooh/sokol.git
+imgui https://github.com/ocornut/ImGui.git --branch docking
+glm https://github.com/g-truc/glm.git
+json https://github.com/nlohmann/json.git
+liveplusplus https://github.com/simongeilfus/liveplusplus.git
+imgui_utils https://github.com/simongeilfus/imgui_utils.git
+cereal https://github.com/USCiLab/cereal.git
+date https://github.com/HowardHinnant/date.git
+stb https://github.com/nothings/stb.git
+flags https://github.com/sailormoon/flags.git
+tinyexr https://github.com/syoyo/tinyexr.git
+tinyobj https://github.com/tinyobjloader/tinyobjloader.git
+ufbx https://github.com/bqqbarbhg/ufbx.git

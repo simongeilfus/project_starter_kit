@@ -27,81 +27,84 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-@rem intro
+echo project_starter_kit/script.bat
+
+@rem parse arguments
+@rem -----------------------------------
+set argc=0
+for %%x in (%*) do (
+   set /A argc+=1
+   set "argv[!argc!]=%%~x"
+)
+
+@rem no argument message
+@rem -----------------------------------
+if %argc% lss 1 goto print_help
+
+@rem build commands
+@rem -----------------------------------
+set commandc=0
+set git_mode=submodule add
+for /L %%l in (1,1,%argc%) do (
+    if !argv[%%l]! == clone (
+        @rem change mode to clone
+        set "git_mode=clone"
+    ) else (
+        if !argv[%%l]! == submodule (
+            @rem change mode to submodule
+            set "git_mode=submodule add"
+        ) else (
+            @rem check if this match the name of a library to setup
+            for /F "tokens=1,2,3" %%i in (third_party.txt) do (
+                @rem if there's a match add the command to the list
+                if !argv[%%l]! == %%i (
+                    set /A commandc+=1
+                    set "commandv[!commandc!]=git !git_mode! %%j %%k third_party/%%i"
+                )
+            )
+        )
+    )
+)
+
+@rem no commands build warning message
+@rem -----------------------------------
+if %commandc% lss 1 (
+    echo:
+    echo   Error: No commands were build
+    goto print_help
+)
+
+@rem print commands
 @rem -----------------------------------
 echo This script will generate the following commands:
 echo:
-
-set mode=print
-set git_mode=submodule add
-
-@rem parsing arguments
-@rem -----------------------------------
-:parse_args
-if "%~1" == "" goto end_parse_args
-if "%~1" == "clone" (
-    set git_mode=clone
-) 
-if "%~1" == "submodule" (
-    set git_mode=submodule add
-) 
-if "%~1" == "cinder" (
-    echo     git !git_mode! https://github.com/cinder/Cinder.git --recursive third_party/cinder
-    set cinder=!git_mode!
-) 
-if "%~1" == "glfw" (
-    echo     git !git_mode! https://github.com/glfw/glfw.git third_party/glfw
-    set glfw=!git_mode!
-) 
-if "%~1" == "imgui" (
-    echo     git !git_mode! https://github.com/ocornut/ImGui.git third_party/imgui
-    set imgui=!git_mode!
-) 
-if "%~1" == "json" (
-    echo     git !git_mode! https://github.com/nlohmann/json.git third_party/json
-    set json=!git_mode!
-)
-if "%~1" == "live++" (
-    echo     git !git_mode! https://github.com/simongeilfus/liveplusplus.git third_party/liveplusplus
-    set liveplusplus=!git_mode!
-)
-if "%~1" == "imgui_utils" (
-    echo     git !git_mode! https://github.com/simongeilfus/imgui_utils.git third_party/imgui_utils
-    set imgui_utils=!git_mode!
-) 
-shift
-goto parse_args
-:end_parse_args
-echo:
+for /L %%i in (1,1,%commandc%) do echo      !commandv[%%i]!
 
 @rem confirm message
 @rem -----------------------------------
-choice /C YC /M "Confirm with Y or cancel with C : "
+echo:
+choice /C YN /M "Do you want to execute those commands? "
 echo:
 goto option-%errorlevel%
+
 :option-1
-
-@rem execute
+@rem execute commands
 @rem -----------------------------------
-if defined cinder git !cinder! https://github.com/cinder/Cinder.git --recursive third_party/cinder
-if defined glfw git !glfw! https://github.com/glfw/glfw.git third_party/glfw
-if defined imgui git !imgui! https://github.com/ocornut/ImGui.git third_party/imgui
-if defined json git !json! https://github.com/nlohmann/json.git thid_party/json
-if defined liveplusplus !liveplusplus! https://github.com/simongeilfus/liveplusplus.git third_party/liveplusplus
-if defined imgui_utils git !imgui_utils! https://github.com/simongeilfus/imgui_utils.git third_party/imgui_utils
+for /L %%i in (1,1,%commandc%) do !commandv[%%i]!
 
-:option-2
 goto end
+:print_help
+echo:
+echo   usage: setup [mode] lib0 lib1 [mode] lib2 lib3
+echo   mode defaults to "submodule" but can be set to "clone" or "submodule" in any order
+echo   available third party libraries:
+for /F "tokens=1,2,3" %%i in (third_party.txt) do echo       %%i 
 
 @rem cleanup
 @rem -----------------------------------
-:cleanup
-set mode=
-set git_mode= 
-set cinder=
-set glfw=
-set imgui=
-set json=
-set liveplusplus=
-
+:option-2
 :end
+set argc=
+set argv=
+set commandc=
+set commandv=

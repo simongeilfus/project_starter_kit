@@ -4,7 +4,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS On)
 #----------------------------------------------------------------
 
 # include project configuration
-include(config.cmake)
+include(options.cmake)
 if(NOT PROJECT)
     message(FATAL_ERROR "Project name undefined. Please update config.cmake")
 endif()
@@ -45,7 +45,7 @@ if( SOURCES )
     add_library(${PROJECT} STATIC ${SOURCES})
     target_include_directories(${PROJECT} PUBLIC "${INCLUDE_DIR}")
     # specify the C++ standard
-    target_compile_features(${PROJECT} PRIVATE cxx_std_17)
+    target_compile_features(${PROJECT} PRIVATE cxx_std_20)
     # link third party libraries
     target_link_libraries(${PROJECT} PRIVATE ${THIRD_PARTY_LIBRARIES})    
     # move libs into folders
