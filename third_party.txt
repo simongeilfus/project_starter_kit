@@ -8,6 +8,7 @@ json https://github.com/nlohmann/json.git
 liveplusplus https://github.com/simongeilfus/liveplusplus.git
 imgui_utils https://github.com/simongeilfus/imgui_utils.git
 cereal https://github.com/USCiLab/cereal.git
+hfsm2 https://github.com/andrew-gresyk/HFSM2/
 date https://github.com/HowardHinnant/date.git
 stb https://github.com/nothings/stb.git
 flags https://github.com/sailormoon/flags.git

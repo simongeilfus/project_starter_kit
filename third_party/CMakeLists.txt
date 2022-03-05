@@ -45,6 +45,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/flags)
     target_include_directories(flags INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/flags/include")
 endif()
 
+# glad
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/glad)
+    set(GLAD_SOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/glad")
+    add_subdirectory("${GLAD_SOURCES_DIR}/cmake" glad_cmake)
+    glad_add_library(glad REPRODUCIBLE API gl:core=3.3)
+    list(APPEND THIRD_PARTY_LIBRARIES glad)
+    set_property(TARGET glad PROPERTY FOLDER "third_party")
+endif()
+
 # glfw
 # automatically add glfw if the folder exists
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/glfw)
@@ -65,6 +74,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/glm)
     add_library(glm INTERFACE)
     target_include_directories(glm INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/glm")
     set(GLM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/glm")
+endif()
+
+# hfsm2
+# automatically add hfsm2 if the folder exists
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hfsm2)
+    list(APPEND THIRD_PARTY_LIBRARIES hfsm2)
+    add_library(hfsm2 INTERFACE)
+    target_include_directories(hfsm2 INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/hfsm2/include")
 endif()
 
 # imgui
