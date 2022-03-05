@@ -45,21 +45,21 @@ if %argc% lss 1 goto print_help
 @rem -----------------------------------
 set commandc=0
 set git_mode=submodule add
-for /L %%l in (1,1,%argc%) do (
-    if !argv[%%l]! == clone (
+for /L %%e in (1,1,%argc%) do (
+    if !argv[%%e]! == clone (
         @rem change mode to clone
         set "git_mode=clone"
     ) else (
-        if !argv[%%l]! == submodule (
+        if !argv[%%e]! == submodule (
             @rem change mode to submodule
             set "git_mode=submodule add"
         ) else (
             @rem check if this match the name of a library to setup
-            for /F "tokens=1,2,3" %%i in (third_party.txt) do (
+            for /F "tokens=1,2,3,4" %%i in (third_party.txt) do (
                 @rem if there's a match add the command to the list
-                if !argv[%%l]! == %%i (
+                if !argv[%%e]! == %%i (
                     set /A commandc+=1
-                    set "commandv[!commandc!]=git !git_mode! %%j %%k third_party/%%i"
+                    set "commandv[!commandc!]=git !git_mode! %%k %%l %%j third_party/%%i"
                 )
             )
         )
