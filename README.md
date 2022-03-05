@@ -21,12 +21,12 @@ CMake is used to generate a single solution with everything in it; a list of pro
 Here's an example of setup after copying the content of the boilerplate inside a new repository.
 
 ```bash
-setup glfw imgui
+setup glfw glad imgui
 create glfw NewProject 
 configure
 ```
 
-This will add submodules for glfw and imgui, create a glfw project named *NewProject* and generate a visual studio solution inside the build folder. 
+This will add submodules for glfw, glad and imgui, create a glfw project named *NewProject* and generate a visual studio solution inside the build folder. 
 
 The following will add a new project to the solution using another template for raw cpp. No need to change solution or create a separate project.
 
@@ -47,7 +47,7 @@ You get the idea.
 
 ### SETUP script
 
-`setup` takes two kind of arguments, the names of libraries to add to the project and whether the script has to add them as clones or submodules. You can change mode as many time as you want but it will starts and defaults to submodules.
+`setup` takes two kind of arguments, the names of libraries to add to the project and whether the script has to add them as clones or submodules. You can change mode as many time as you want but it will start and default to submodules.
 
 ````bash
 setup glfw imgui stb
@@ -65,7 +65,7 @@ This will will add glfw, imgui, imgui_utils and json as submodule but clone live
 
 ### CREATE script
 
-`create` is used to quickly generate new projects to be added to the solution. Running `create template project_name` will create a new project inside the `projects` folder. There's a few templates to choose from that live inside `tools/project_templates` folder and are meant to be customized. You can also add new template by editing `create_project.py`.
+`create` is used to quickly generate new projects to be added to the solution. Running `create template project_name` will create a new project inside the `projects` folder. There's a few templates to choose from that live inside `tools/project_templates` folder and are meant to be customized. You can also easily add new template by adding a new folder inside `tools/project_templates` containing at least a `template.cpp`.
 
 `create` currently supports the following templates: `cinder`,`cpp`, `glfw` and `sokol`. 
 
@@ -87,26 +87,26 @@ Manually creating a new folder and adding sources to it will work too; meaning y
 
 ### CONFIGURE script
 
-`configure` is a simple batch script that generates the solution files using CMake. You can use `configure live++` to enable Live++ in the solution.
+`configure` calls the main CMakeLists.txt and generates a visual studio solution with the projects presents in the *projects* folder, a shared library if any and any third party libraries recognized inside the *third_party* folder. You can use `configure live++` to enable Live++ in the solution.
 
-The main `CMakeLists.txt` will include a few variables from `options.cmake` . You'll find there a few options like the name of the generated solution/project.
+The main `CMakeLists.txt` will include a few variables from `options.cmake` . You'll find there a few options like the name of the generated solution/project which you might want to customize if your project isn't named *project_starter_kit*.
 
 ```cmake
 # project name
 set(PROJECT project_starter_kit) # change the name of your project here
 ```
 
-### Assets
-
-CMake will check for the existence of an assets folder. Assets and shaders will be added to the project in their respective folders. As cmake doesn't build inside the projects folders an `ASSETS_DIR_PATH` definition will be added to the project preprocessor (and could for instance be used with a `addAssetDirectory( ASSETS_DIR_PATH )`).
-
-### Common library
+#### Common library
 
 If an `include` and a `src` folder are detected at the root of the repository a common library will be added to the solution. This can be useful to share a common set of tools, a common base app class, etc... among the different projects. The library includes will be added and its binaries will be linked to all projects.
 
-### Third party libraries
+#### Assets
 
-The `configure` build scripts will try to automatically add recognized folders inside `third_party`. It currently supports the same list of libraries as `setup` but if needed extra libraries can be added to the empty section at the end of `third_party/CMakeLists.txt`.  When doing so it is important to append the name of library to the `THIRD_PARTY_LIBRARIES` list if you want it to be linked to your projects.
+CMake will check for the existence of an assets folder. Assets and shaders will be added to the project in their respective folders. As cmake doesn't build inside the projects folders an `ASSETS_DIR_PATH` definition will be added to the project preprocessor (and could for instance be used with a `addAssetDirectory( ASSETS_DIR_PATH )`).
+
+#### Third party libraries
+
+The `configure` build scripts will try to automatically add recognized folders inside the `third_party` folder. It currently supports the same list of libraries included in `third_party.txt`. Other third party libraries can be added to the empty section at the end of `third_party/CMakeLists.txt`.  When adding a new third party library it is important to append the name of the library to the `THIRD_PARTY_LIBRARIES` list if you want it to be linked to your projects.
 
 ```cmake
 # custom third party libraries
@@ -118,7 +118,7 @@ add_subdirectory(custom_lib)
 
 You can also use the local `project.cmake` to customize how libraries are added to specific projects but not others.
 
-### Live++
+#### Live++
 
 Live++ can easily be added to both the repository and the solution by doing the following:
 

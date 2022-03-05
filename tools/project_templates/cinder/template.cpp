@@ -1,31 +1,36 @@
+#include "cinder/app/App.h"
+#include "cinder/app/RendererGl.h"
+
+#include "cinder/gl/gl.h"
+
 using namespace ci;
 using namespace ci::app;
 using namespace std;
 
-class TemplateApp : public App {
+class TEMPLATE : public App {
 public:
-    TemplateApp();
+    TEMPLATE();
     void setup() override;
     void update() override;
     void draw() override;
 };
 
-TemplateApp::TemplateApp()
+TEMPLATE::TEMPLATE()
 {
 #if defined( ASSETS_DIR )
 	addAssetDirectory( ASSETS_DIR );
 #endif
 }
 
-void TemplateApp::setup()
+void TEMPLATE::setup()
 {
 }
 
-void TemplateApp::update() 
+void TEMPLATE::update() 
 {
 }
 
-void TemplateApp::draw()
+void TEMPLATE::draw()
 {
     // Clear the back buffer
     gl::clear( ColorA( 0.05f, 0.06f, 0.09f, 1.0f ) );
@@ -37,4 +42,4 @@ void prepareSettings( App::Settings* settings )
     settings->setWindowPos( 60, 60 );
 }
 
-CINDER_APP( TemplateApp, RendererGl, prepareSettings )
+CINDER_APP( TEMPLATE, RendererGl, prepareSettings )

@@ -1,8 +1,16 @@
 import os, sys, shutil, glob, argparse, subprocess
 
+# search for available templates
+templates = []
+template_directory = os.fsencode( "tools/project_templates/" )
+    
+for path in os.listdir( template_directory ):
+    if os.path.isdir( os.path.join( template_directory, path ) ) :
+        templates.append( os.fsdecode( path ) )
+
 # script arguments
 parser = argparse.ArgumentParser()
-parser.add_argument( 'template', choices=['cinder', 'glfw', 'sokol', 'cpp'], help='specifies the template to be used to generate the project' )
+parser.add_argument( 'template', choices=templates, help='specifies the template to be used to generate the project' )
 parser.add_argument( 'project_name', help='specifies the name of the project' )
 parser.add_argument( '--pch', action='store_true', help='specifies whether the project needs to be generated with pch files' )
 parser.add_argument( '--cmake', action='store_true', help='specifies whether the project needs a custom cmake config file' )
@@ -29,8 +37,6 @@ def copy_files(src_dir, target_dir, extension):
             shutil.copy2( src, target_dir )
 
 template_dir = "tools/project_templates/" + args.template
-if args.pch :
-  template_dir += "_pch"
 
 project_src_dir = project_dir
 project_include_dir = project_dir
@@ -41,40 +47,29 @@ if args.folders:
   os.makedirs( project_include_dir )
   os.makedirs( project_src_dir )
   
+copy_files( template_dir, project_dir, '*.cmake')
 copy_files( template_dir, project_include_dir, '*.h')
 copy_files( template_dir, project_src_dir, '*.cpp')
 
-# add necessary cmake config 
-if args.template == 'cpp':
+# optional cmake config file
+if args.cmake and not os.path.isfile( os.path.join( template_dir, "project.cmake" ) ) :
   shutil.copy2( "tools/project_templates/project.cmake", project_dir )
-  with open( os.path.join( project_dir, "project.cmake" ), "a") as cmakeFile:
-    cmakeFile.write( 
-      'if(MSVC)\n'
-      '\tset_target_properties( ${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:console /ENTRY:mainCRTStartup" )\n'
-      'endif()'
-      )
-elif args.template == 'glfw':
-  shutil.copy2( "tools/project_templates/project.cmake", project_dir )
-  with open( os.path.join( project_dir, "project.cmake" ), "a") as cmakeFile:
-    cmakeFile.write( 
-      'if(MSVC)\n'
-      '\tset_target_properties( ${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:windows /ENTRY:mainCRTStartup" )\n'
-      'endif()'
-      )
-# or an optional cmake config file
-elif args.cmake:
-  shutil.copy2( "tools/project_templates/project.cmake", project_dir )
+  
+# optional pch
+if args.pch :
+  shutil.copy2( "tools/project_templates/pch.h", project_dir )
+  shutil.copy2( "tools/project_templates/pch.cpp", project_dir )
 
 # rename main file
 project_source_path = os.path.join( project_src_dir, project_name + ".cpp" );
-os.rename( os.path.join( project_src_dir, "TemplateApp.cpp" ), project_source_path )
+os.rename( os.path.join( project_src_dir, "template.cpp" ), project_source_path )
 
 # and replace content
 with open( project_source_path, 'r' ) as file :
   project_file = file.read()
 
 # Replace the target string
-project_file = project_file.replace( 'TemplateApp', project_name )
+project_file = project_file.replace( 'TEMPLATE', project_name )
 
 # Write the file out again
 with open( project_source_path, 'w' ) as file:
