@@ -1,8 +1,8 @@
-## project_starter_kit
+# project_starter_kit
 
 
 
-**This repository is an attempt at unifying the build scripts and tools I often use to setup while setting up a c++ project on Windows.**  
+**This repository is an attempt at unifying the build scripts and tools I often use to setup a c++ project on Windows.**  
 
 *It is a collection of python and cmake scripts that I have found useful or use often. The common idea behind those script is to make iterative prototyping fast and effort less. Spending less time in visual studio project settings and more time writing code.* 
 
