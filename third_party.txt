@@ -1,4 +1,5 @@
 cinder https://github.com/cinder/Cinder.git
+glad https://github.com/Dav1dde/glad.git -b glad2
 glfw https://github.com/glfw/glfw.git
 sokol https://github.com/floooh/sokol.git
 imgui https://github.com/ocornut/ImGui.git
