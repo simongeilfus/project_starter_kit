@@ -1,3 +1,6 @@
+@REM project_starter_kit
+@REM https://github.com/simongeilfus/project_starter_kit
+
 @rem MIT License
 
 @rem Copyright (c) 2022 Simon Geilfus

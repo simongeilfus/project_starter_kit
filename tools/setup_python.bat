@@ -30,23 +30,14 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-set cmake_args=-UENABLE_LPP
-
-@rem parsing arguments
-@rem -----------------------------------
-:parse_args
-if "%~1" == "" goto end_parse_args
-if "%~1" == "live++" set cmake_args=%cmake_args% -DENABLE_LPP=ON
-if "%~1" == "liveplusplus" set cmake_args=%cmake_args% -DENABLE_LPP=ON
-SHIFT
-goto parse_args
-:end_parse_args
-
-@rem run cmake
-@rem -----------------------------------
-cmake -S . -B ./build -G "Visual Studio 16 2019" -A x64 !cmake_args!
-
-@rem end
-@rem -----------------------------------
-:end
-set cmake_args = 
+@rem setup source and destination
+set source_url=https://www.python.org/ftp/python/3.10.2/python-3.10.2-amd64.exe
+set destination=%temp%\python-3.10.2-amd64.exe
+@rem start download
+powershell -Command "Invoke-WebRequest %source_url% -OutFile %destination%"
+@rem execute installer
+start /w %destination%
+@rem cleanup
+del %destination%
+set source=
+set destination=

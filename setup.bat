@@ -1,3 +1,6 @@
+@REM project_starter_kit
+@REM https://github.com/simongeilfus/project_starter_kit
+
 @rem MIT License
 
 @rem Copyright (c) 2022 Simon Geilfus
@@ -27,7 +30,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-echo project_starter_kit/script.bat
+echo project_starter_kit/setup.bat
 
 @rem parse arguments
 @rem -----------------------------------
@@ -43,6 +46,7 @@ if %argc% lss 1 goto print_help
 
 @rem build commands
 @rem -----------------------------------
+set needs_submodule_init=0
 set commandc=0
 set git_mode=submodule add
 for /L %%e in (1,1,%argc%) do (
@@ -54,14 +58,30 @@ for /L %%e in (1,1,%argc%) do (
             @rem change mode to submodule
             set "git_mode=submodule add"
         ) else (
-            @rem check if this match the name of a library to setup
+            @rem check if this match the name of a git repository to setup
             for /F "tokens=1,2,3,4" %%i in (third_party.txt) do (
                 @rem if there's a match add the command to the list
                 if !argv[%%e]! == %%i (
                     set /A commandc+=1
                     set "commandv[!commandc!]=git !git_mode! %%k %%l %%j third_party/%%i"
+                    set needs_submodule_init=1
                 )
             )
+            @rem install cmake
+            if !argv[%%e]! == cmake (
+                set /A commandc+=1
+                set "commandv[!commandc!]=call tools\setup_cmake.bat"
+            )
+            @rem install python
+            if !argv[%%e]! == python (
+                set /A commandc+=1
+                set "commandv[!commandc!]=call tools\setup_python.bat"
+            )
+            @rem install vulkan
+            if !argv[%%e]! == vulkan (
+                set /A commandc+=1
+                set "commandv[!commandc!]=call tools\setup_vulkan.bat"
+            ) 
         )
     )
 )
@@ -73,9 +93,11 @@ if %commandc% lss 1 (
     echo   Error: No commands were build
     goto print_help
 ) else (
-    @rem otherwise add default ending commands
-    set /A commandc+=1
-    set "commandv[!commandc!]=git submodule update --init --recursive"
+    if %needs_submodule_init% == 1 (
+        @rem otherwise add default ending commands
+        set /A commandc+=1
+        set "commandv[!commandc!]=git submodule update --init --recursive"
+    )
 )
 
 @rem print commands
@@ -112,3 +134,4 @@ set argc=
 set argv=
 set commandc=
 set commandv=
+set needs_submodule_init=
