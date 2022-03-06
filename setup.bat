@@ -59,7 +59,7 @@ for /L %%e in (1,1,%argc%) do (
             set "git_mode=submodule add"
         ) else (
             @rem check if this match the name of a git repository to setup
-            for /F "tokens=1,2,3,4" %%i in (third_party.txt) do (
+            for /F "tokens=1,2,3,4" %%i in (%~dp0/tools/third_party.txt) do (
                 @rem if there's a match add the command to the list
                 if !argv[%%e]! == %%i (
                     set /A commandc+=1
@@ -124,7 +124,7 @@ echo:
 echo   usage: setup [mode] lib0 lib1 [mode] lib2 lib3
 echo   mode defaults to "submodule" but can be set to "clone" or "submodule" in any order
 echo   available third party libraries:
-for /F "tokens=1,2,3" %%i in (third_party.txt) do echo       %%i 
+for /F "tokens=1,2,3" %%i in (%~dp0/tools/third_party.txt) do echo       %%i 
 
 @rem cleanup
 @rem -----------------------------------

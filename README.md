@@ -12,7 +12,7 @@
 
 ### Requirements
 
-**CMake 3.6** is required to build the project and **Python** to easily add new subprojects.
+**CMake 3.6** is required to build the project and **Python** to easily add new subprojects. If not already installed the easiest to get them is to run `setup cmake python`.
 
 ### Introduction
 
@@ -47,15 +47,15 @@ You get the idea.
 
 ### SETUP script
 
-`setup` takes two kind of arguments, the names of libraries to add to the project and whether the script has to add them as clones or submodules. You can change mode as many time as you want but it will start and default to submodules.
+`setup` takes two kind of arguments, the names of libraries or tools to add to the project and whether the script has to add them as clones or submodules. You can change mode as many time as you want but it will start and default to submodules. `setup` can also be used to download and install `cmake`, `python` or `vulkan`.
 
 ````bash
-setup glfw imgui stb
+setup cmake glfw imgui stb
 ````
 
-This will setup glfw, imgui and stb as submodules inside the `third_party` folder.
+This will download and instand cmake, and setup glfw, imgui and stb as submodules inside the `third_party` folder.
 
-The `setup` scripts makes cloning and adding submodule easier for a few of the libraries I tend to use often but the content of `third_party.txt` can be customized to support more libraries. By default it will add those as submodule but you can easily mix `clone` and `submodule` by adding those to your `setup` command.
+The `setup` scripts makes cloning and adding submodule easier for a few of the libraries I tend to use often but the content of `third_party.txt` can be customized to support more libraries. It currently supports [cereal](https://github.com/USCiLab/cereal), [cinder](https://github.com/cinder/Cinder), [csv](https://github.com/ben-strasser/fast-cpp-csv-parser), [cxxopts](https://github.com/jarro2783/cxxopts), [date](https://github.com/HowardHinnant/date), [entt](https://github.com/skypjack/entt), [glad](https://github.com/Dav1dde/glad), [glfw](https://github.com/glfw/glfw), [glm](https://github.com/g-truc/glm), [glslang](https://github.com/KhronosGroup/glslang), [hfsm2](https://github.com/andrew-gresyk/HFSM2), [imgui](https://github.com/ocornut/ImGui), [imgui_utils](https://github.com/simongeilfus/imgui_utils), [json](https://github.com/nlohmann/json), [liveplusplus](https://github.com/simongeilfus/liveplusplus), [pybind11](https://github.com/pybind/pybind11), [sokol](https://github.com/floooh/sokol), [stb](https://github.com/nothings/stb), [taskflow](https://github.com/taskflow/taskflow), [tinyexr](https://github.com/syoyo/tinyexr), [tinyobj](https://github.com/tinyobjloader/tinyobjloader), [ufbx](https://github.com/bqqbarbhg/ufbx), [vma](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator), [volk](https://github.com/zeux/volk), and [vulkanhpp](https://github.com/KhronosGroup/Vulkan-Headers). By default it will add those as submodule but you can easily mix `clone` and `submodule` by adding those to your `setup` command.
 
 ```bash
 setup glfw imgui clone liveplusplus submodule imgui_utils json
@@ -65,7 +65,7 @@ This will will add glfw, imgui, imgui_utils and json as submodule but clone live
 
 ### CREATE script
 
-`create` is used to quickly generate new projects to be added to the solution. Running `create template project_name` will create a new project inside the `projects` folder. There's a few templates to choose from that live inside `tools/project_templates` folder and are meant to be customized. You can also easily add new template by adding a new folder inside `tools/project_templates` containing at least a `template.cpp`.
+`create` is used to quickly generate new projects to be added to the solution. Running `create template project_name` will create a new project inside the `projects` folder. There's a few templates to choose from that live inside `tools/project_templates` folder and are meant to be customized.
 
 `create` currently supports the following templates: `cinder`,`cpp`, `glfw` and `sokol`. 
 
@@ -81,9 +81,13 @@ It can also accept a few optional arguments such as:
 
 * `--configure++` specifies whether solution need to be generated after creating the project
 
-
+##### Manually creating or duplicating projects
 
 Manually creating a new folder and adding sources to it will work too; meaning you can also easily duplicate a project by just copying its folder. Projects inside the `projects` folder can be a single `.cpp` file or they can follow the usual `/include`,`/src` ,`/assets` structure. If a `pch.h` is detected it will automatically be added to the project configuration. A `project.cmake` file can be added to the root of a project if it needs custom cmake specific to the project.
+
+##### Custom template
+
+ You can also easily add new template by adding a new folder inside `tools/project_templates` containing at least a `template.cpp`. The template process doesn't do much apart from copying the content of the folder and renaming the `template.cpp` to the name of your project. It will also look for a `TEMPLATE` string inside that file and replace it with the name of the project as well.
 
 ### CONFIGURE script
 
@@ -96,15 +100,15 @@ The main `CMakeLists.txt` will include a few variables from `options.cmake` . Yo
 set(PROJECT project_starter_kit) # change the name of your project here
 ```
 
-#### Common library
+##### Common library
 
 If an `include` and a `src` folder are detected at the root of the repository a common library will be added to the solution. This can be useful to share a common set of tools, a common base app class, etc... among the different projects. The library includes will be added and its binaries will be linked to all projects.
 
-#### Assets
+##### Assets
 
 CMake will check for the existence of an assets folder. Assets and shaders will be added to the project in their respective folders. As cmake doesn't build inside the projects folders an `ASSETS_DIR_PATH` definition will be added to the project preprocessor (and could for instance be used with a `addAssetDirectory( ASSETS_DIR_PATH )`).
 
-#### Third party libraries
+##### Third party libraries
 
 The `configure` build scripts will try to automatically add recognized folders inside the `third_party` folder. It currently supports the same list of libraries included in `third_party.txt`. Other third party libraries can be added to the empty section at the end of `third_party/CMakeLists.txt`.  When adding a new third party library it is important to append the name of the library to the `THIRD_PARTY_LIBRARIES` list if you want it to be linked to your projects.
 
@@ -118,7 +122,7 @@ add_subdirectory(custom_lib)
 
 You can also use the local `project.cmake` to customize how libraries are added to specific projects but not others.
 
-#### Live++
+##### Live++
 
 Live++ can easily be added to both the repository and the solution by doing the following:
 

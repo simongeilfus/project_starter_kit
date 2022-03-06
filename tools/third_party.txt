@@ -1,0 +1,25 @@
+cereal https://github.com/USCiLab/cereal.git
+cinder https://github.com/cinder/Cinder.git
+csv https://github.com/ben-strasser/fast-cpp-csv-parser.git
+cxxopts https://github.com/jarro2783/cxxopts.git
+date https://github.com/HowardHinnant/date.git
+entt https://github.com/skypjack/entt.git
+glad https://github.com/Dav1dde/glad.git -b glad2
+glfw https://github.com/glfw/glfw.git
+glm https://github.com/g-truc/glm.git
+glslang https://github.com/KhronosGroup/glslang.git
+hfsm2 https://github.com/andrew-gresyk/HFSM2.git
+imgui https://github.com/ocornut/ImGui.git
+imgui_utils https://github.com/simongeilfus/imgui_utils.git
+json https://github.com/nlohmann/json.git
+liveplusplus https://github.com/simongeilfus/liveplusplus.git
+pybind11 https://github.com/pybind/pybind11.git
+sokol https://github.com/floooh/sokol.git
+stb https://github.com/nothings/stb.git
+taskflow https://github.com/taskflow/taskflow.git
+tinyexr https://github.com/syoyo/tinyexr.git
+tinyobj https://github.com/tinyobjloader/tinyobjloader.git
+ufbx https://github.com/bqqbarbhg/ufbx.git
+vma https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+volk https://github.com/zeux/volk.git
+vulkanhpp https://github.com/KhronosGroup/Vulkan-Headers.git
