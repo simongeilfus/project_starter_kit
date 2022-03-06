@@ -56,7 +56,7 @@ if(THIRD_PARTY_LIBRARIES)
     foreach(lib ${THIRD_PARTY_LIBRARIES})
         message( "   - " ${lib} )
     endforeach()
-endif(THIRD_PARTY_LIBRARIES)
+endif()
 
 # setup the project's common library
 file(GLOB_RECURSE SOURCES 
@@ -86,15 +86,20 @@ if( SOURCES )
     endif()
     # append common lib to the third_party_libraries list so sub-projects can link with it
     list(APPEND THIRD_PARTY_LIBRARIES ${PROJECT} )
-endif( SOURCES )
+endif()
 
 # add projects
+set(PROJECTS "" )
 add_subdirectory(${PROJECTS_DIRECTORY})
 
+# project startup
 if(MSVC)
+    if(NOT STARTUP_PROJECT_NAME AND PROJECTS)
+        list(GET PROJECTS 0 STARTUP_PROJECT_NAME)
+    endif()
     # set startup project in visual studio
     if(STARTUP_PROJECT_NAME)
         message( STATUS "Setting startup project: ${STARTUP_PROJECT_NAME}")
         set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${STARTUP_PROJECT_NAME})
-    endif(STARTUP_PROJECT_NAME)
+    endif()
 endif()
