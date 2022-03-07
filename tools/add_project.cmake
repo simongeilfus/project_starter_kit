@@ -41,9 +41,6 @@ function(add_project PROJECT_NAME DEST_FOLDER_NAME)
     endif()
     target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
-    # link common and third_party libs
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_LIBRARIES})
-
     # check for extra dependencies
     if(EXISTS ${DIR}/project.cmake)
         include(${DIR}/project.cmake)
@@ -51,7 +48,10 @@ function(add_project PROJECT_NAME DEST_FOLDER_NAME)
             target_link_libraries(${PROJECT_NAME} PUBLIC ${EXTRA_DEPENDENCIES})
         endif()
     endif()
-    
+
+    # link common and third_party libs
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_LIBRARIES})
+
     # if necessary add build step to copy assets folder and add it to the project
     if(EXISTS ${DIR}/assets)
         set(ASSETS_DIR ${DIR}/assets)

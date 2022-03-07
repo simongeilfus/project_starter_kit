@@ -67,10 +67,10 @@ project_src_dir = project_dir
 project_include_dir = project_dir
 
 if args.folders:
-  project_include_dir = os.path.join( project_dir, "include" )
-  project_src_dir = os.path.join( project_dir, "src" )
-  os.makedirs( project_include_dir )
-  os.makedirs( project_src_dir )
+    project_include_dir = os.path.join( project_dir, "include" )
+    project_src_dir = os.path.join( project_dir, "src" )
+    os.makedirs( project_include_dir )
+    os.makedirs( project_src_dir )
   
 copy_files( template_dir, project_dir, '*.cmake')
 copy_files( template_dir, project_include_dir, '*.h')
@@ -78,31 +78,34 @@ copy_files( template_dir, project_src_dir, '*.cpp')
 
 # optional cmake config file
 if args.cmake and not os.path.isfile( os.path.join( template_dir, "project.cmake" ) ) :
-  shutil.copy2( "tools/project_templates/project.cmake", project_dir )
+    shutil.copy2( "tools/project_templates/project.cmake", project_dir )
   
 # optional pch
 if args.pch :
-  shutil.copy2( "tools/project_templates/pch.h", project_dir )
-  shutil.copy2( "tools/project_templates/pch.cpp", project_dir )
+    shutil.copy2( "tools/project_templates/pch.h", project_dir )
+    shutil.copy2( "tools/project_templates/pch.cpp", project_dir )
 
-# rename main file
-project_source_path = os.path.join( project_src_dir, project_name + ".cpp" );
-os.rename( os.path.join( project_src_dir, "template.cpp" ), project_source_path )
+# rename template files and contents
+def replace_template_content( src_path ):
+    # and replace content
+    with open( src_path, 'r' ) as file :
+        project_file = file.read()
+    # Replace the target string
+    project_file = project_file.replace( 'TEMPLATE', project_name )
+    # Write the file out again
+    with open( src_path, 'w' ) as file:
+        file.write( project_file )
 
-# and replace content
-with open( project_source_path, 'r' ) as file :
-  project_file = file.read()
+if os.path.exists( os.path.join( project_include_dir, "template.h" ) ):
+    os.rename( os.path.join( project_include_dir, "template.h" ), os.path.join( project_include_dir, project_name + ".h" ) )
+    replace_template_content( os.path.join( project_include_dir, project_name + ".h" ) )
 
-# Replace the target string
-project_file = project_file.replace( 'TEMPLATE', project_name )
-
-# Write the file out again
-with open( project_source_path, 'w' ) as file:
-  file.write( project_file )
+os.rename( os.path.join( project_src_dir, "template.cpp" ), os.path.join( project_src_dir, project_name + ".cpp" ) )
+replace_template_content( os.path.join( project_src_dir, project_name + ".cpp" ) )
 
 print( "New %s project created at %s" % ( args.template, project_dir ) )
   
 if args.configureplusplus :
-  os.system( 'configure.bat live++' )
+    os.system( 'configure.bat live++' )
 if args.configure :
-  os.system( 'configure.bat' )
+    os.system( 'configure.bat' )
