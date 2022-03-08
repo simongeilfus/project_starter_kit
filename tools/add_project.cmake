@@ -28,7 +28,7 @@ function(add_project PROJECT_NAME DEST_FOLDER_NAME)
     set(DIR ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME})
     set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/${DEST_FOLDER_NAME}/${PROJECT_NAME})
     file(GLOB_RECURSE SOURCES ${DIR}/*.cpp ${DIR}/*.h)    
-    add_executable(${PROJECT_NAME} MACOSX_BUNDLE WIN32 ${SOURCES})
+    add_executable(${PROJECT_NAME} ${EXECUTABLE_TYPES} ${SOURCES})
     
     # set output folder
     set_target_properties( ${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}" )
@@ -39,7 +39,7 @@ function(add_project PROJECT_NAME DEST_FOLDER_NAME)
     else()
         target_include_directories(${PROJECT_NAME} PUBLIC "${DIR}")
     endif()
-    target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+    target_compile_features(${PROJECT_NAME} PUBLIC ${CXX_STANDARD})
 
     # check for extra dependencies
     if(EXISTS ${DIR}/project.cmake)
