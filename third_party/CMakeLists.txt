@@ -50,4 +50,5 @@ include(../tools/third_party.cmake)
 #-----------------------------------------------------------------------------
 
 # update the parent list of third party libraries
-set(THIRD_PARTY_LIBRARIES ${THIRD_PARTY_LIBRARIES} PARENT_SCOPE )
+set(THIRD_PARTY_LIBRARIES ${THIRD_PARTY_LIBRARIES} PARENT_SCOPE)
+set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
