@@ -3,3 +3,10 @@
 cmake-build-*
 imgui.ini
 .DS_Store
+
+# project_starter_kit dev helpers
+# .gitmodules
+# /third_party/*
+# !/third_party/CMakeLists.txt
+# /projects/*
+# !/projects/CMakeLists.txt
