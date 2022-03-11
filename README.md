@@ -22,11 +22,24 @@ Here's an example of setup after copying the content of the boilerplate inside a
 
 ```bash
 setup glfw glad imgui
-create glfw NewProject 
+create glfw GlfwProject 
 configure
 ```
 
-This will add submodules for glfw, glad and imgui, create a glfw project named *NewProject* and generate a visual studio solution inside the build folder. 
+This will add submodules for glfw, glad and imgui, create a glfw project named *GlfwProject* and generate a visual studio solution inside the build folder. 
+
+```
+📂 MyProject
+├─ 📂 build
+│ └─ 🏭 MyProject.sln
+├─ 📂 projects
+│ ├─ 📂 GlfwProject
+│ │ └─ 📃 GlfwProject.cpp 
+└─ 📂 third_party
+  ├─ 📂 imgui
+  ├─ 📂 glad
+  └─ 📂 glfw
+```
 
 The following will add a new project to the solution using another template for raw cpp. No need to change solution or create a separate project.
 
@@ -43,7 +56,31 @@ create cinder CinderTestApp
 configure
 ```
 
-You get the idea.
+You get the idea, at that point your project folder should look like this:
+
+```
+📂 MyProject
+├─ 📂 build
+│  └─ 🏭 MyProject.sln
+├─ 📂 projects
+│ ├─ 📂 CinderTestApp
+│ │ └─ 📃 CinderTestApp.cpp 
+│ ├─ 📂 ConsoleApp
+│ │ └─ 📃 ConsoleApp.cpp 
+│ ├─ 📂 GlfwProject
+│ │ └─ 📃 GlfwProject.cpp 
+└─ 📂 third_party
+│ ├─ 📂 cinder
+│ ├─ 📂 imgui
+│ ├─ 📂 glad
+│ └─ 📂 glfw
+├─ 📂 tools
+├─ 📃 CMakeLists.txt
+├─ 🍍 configure.bat
+├─ 🍓 create.bat
+├─ 📃 options.cmake
+└─ 🍉 setup.bat
+```
 
 ### SETUP script
 
