@@ -1,8 +1,32 @@
 # project custom cmake
+#-------------------------------------------------------------------------------------
+# The Cmake project system uses macro to customize how project are configured. Wrapping
+# the project configuration inside those macros ensure that the code is executed at the
+# right moment.
 #
-# use target commands to not pollute other projects
-# ex. target_compile_definitions( ${PROJECT_NAME} PRIVATE SOMETHING=1 )
-#----------------------------------------------------------------
-if(MSVC)
-    set_target_properties( ${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:windows /ENTRY:mainCRTStartup" )
-endif()
+# The following project specific variables are available
+# 
+#       ${PROJECT_DIR}
+#       ${PROJECT_OUTPUT_DIR}
+#       ${PROJECT_TARGET} 
+#       ${PROJECT_OS_BUNDLE} 
+#       ${PROJECT_SOURCE_FILES} 
+#       ${PROJECT_UI_FILES} 
+#       ${PROJECT_RESOURCES_FILES}
+#-------------------------------------------------------------------------------------
+
+# project_executable
+# define a project_executable macro to override the default add_executable behavior
+#-------------------------------------------------------------------------------------
+# macro(project_executable)
+#     add_executable(${PROJECT_TARGET} ${PROJECT_OS_BUNDLE} ${PROJECT_SOURCE_FILES} ${PROJECT_UI_FILES} ${PROJECT_RESOURCES_FILES})
+# endmacro()
+
+# project_configuration
+# define a project_configuration macro to configure a project after its target as been setup
+#-------------------------------------------------------------------------------------
+macro(project_configuration)
+    if(MSVC)
+        target_link_options(${PROJECT_NAME} PRIVATE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
+    endif()
+endmacro()

@@ -35,8 +35,8 @@ set(STARTUP_PROJECT_NAME "")
 # C++ Standard
 set(CXX_STANDARD cxx_std_17)
 
-# executables types
-set(EXECUTABLE_TYPES MACOSX_BUNDLE WIN32)
+# os bundle
+set(OS_BUNDLE AUTO)
 
 # folders name
 set(PROJECTS_DIRECTORY projects)

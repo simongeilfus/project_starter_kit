@@ -75,6 +75,8 @@ if args.folders:
 copy_files( template_dir, project_dir, '*.cmake')
 copy_files( template_dir, project_include_dir, '*.h')
 copy_files( template_dir, project_src_dir, '*.cpp')
+copy_files( template_dir, project_src_dir, '*.qrc')
+copy_files( template_dir, project_src_dir, '*.ui')
 
 # optional cmake config file
 if args.cmake and not os.path.isfile( os.path.join( template_dir, "project.cmake" ) ) :

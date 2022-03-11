@@ -4,7 +4,7 @@
 
 **This repository is an attempt at unifying the build scripts and tools I often use to setup a c++ project on Windows.**  
 
-*It is a collection of python and cmake scripts that I have found useful or use often. The common idea behind those script is to make iterative prototyping fast and effortless. Spending less time in visual studio project settings and more time writing code.* 
+*This is a collection of python and cmake scripts that I have found useful or use often. The common idea behind those scripts is to make iterative prototyping fast and effortless. Spending less time in visual studio project settings and more time writing code.* 
 
 *It is also an ongoing project and might still contain some rough edges but it has made my life easier so far.* 
 
@@ -118,11 +118,40 @@ CMake will check for the existence of an assets folder. Assets and shaders will 
 
 ##### project.cmake
 
-As mentioned before, adding a `project.cmake` allows to customize the configuration of a specific project. You can use `${PROJECT_NAME}` as the target name to set any target property, libraries, include directories, etc... specific to that project. The default `THIRD_PARTY_LIBRARIES` list can also be overridden to link only a selection of the shared libraries.
+As mentioned before, adding a `project.cmake` allows to customize the configuration of a specific project. The most basic customization is to override the default `THIRD_PARTY_LIBRARIES` to link to only a selection of the shared libraries.
 
 ```cmake
 set(THIRD_PARTY_LIBRARIES glfw glm)
 ```
+
+If the project requires a more custom configuration a couple of macros can be defined to override the system's default behavior.  
+
+**`macro(project_configuration)`** can be defined to execute a configuration after the project's target has been created. You can use `${PROJECT_TARGET}` as the target name to set any target property, libraries, include directories, etc... specific to that project. 
+
+```cmake
+macro(project_configuration)
+    # set the executable type
+    target_link_options(${PROJECT_TARGET} PRIVATE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
+endmacro()
+```
+
+**`macro(project_executable)`** can be defined to be used in place of the default `add_executable` for more complex situations where things need to be setup before and after adding the executable.
+
+```cmake
+macro(project_executable)
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_AUTORCC ON)
+    set(CMAKE_AUTOUIC ON)
+    set(CMAKE_PREFIX_PATH "D:/Qt/6.2.3/msvc2019_64/")
+
+    find_package(Qt6 COMPONENTS Core Widgets Gui REQUIRED)
+    
+    add_executable(${PROJECT_TARGET} ${PROJECT_OS_BUNDLE} ${PROJECT_SOURCE_FILES} ${PROJECT_UI_FILES} ${PROJECT_RESOURCES_FILES})
+endmacro()  
+```
+
+The following variables are accessible for each project: `${PROJECT_DIR}`, `${PROJECT_OUTPUT_DIR}`, 
+`${PROJECT_TARGET}`, `${PROJECT_OS_BUNDLE}`, `${PROJECT_SOURCE_FILES}`, `${PROJECT_UI_FILES}`, `${PROJECT_RESOURCES_FILES}`.
 
 ##### Third party libraries
 
