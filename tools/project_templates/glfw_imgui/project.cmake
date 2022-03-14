@@ -1,8 +1,11 @@
-# project custom cmake
+# PROJECT CUSTOM CMAKE
 #-------------------------------------------------------------------------------------
-# The Cmake project system uses macro to customize how project are configured. Wrapping
-# the project configuration inside those macros ensure that the code is executed at the
-# right moment.
+#
+# This file will be included after the project's add_executable call but before any other
+# configuration is done. This allows to set any properties or options specific to the project.
+# Variables such as THIRD_PARTY_LIBRARIES are local to the project and can easily be overriden.
+#
+# If more granularity is needed it is also possible to create a CMakeLists.txt to be used instead.
 #
 # The following project specific variables are available
 # 
@@ -13,35 +16,23 @@
 #       ${PROJECT_SOURCE_FILES} 
 #       ${PROJECT_UI_FILES} 
 #       ${PROJECT_RESOURCES_FILES}
+#
 #-------------------------------------------------------------------------------------
 
-# project_executable
-# define a project_executable macro to override the default add_executable behavior
-#-------------------------------------------------------------------------------------
-# macro(project_executable)
-#     add_executable(${PROJECT_TARGET} ${PROJECT_OS_BUNDLE} ${PROJECT_SOURCE_FILES} ${PROJECT_UI_FILES} ${PROJECT_RESOURCES_FILES})
-# endmacro()
+target_link_options(${PROJECT_TARGET} PRIVATE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
 
-# project_configuration
-# define a project_configuration macro to configure a project after its target as been setup
-#-------------------------------------------------------------------------------------
-macro(project_configuration)
-    if(MSVC)
-        target_link_options(${PROJECT_TARGET} PRIVATE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
-    endif()
+# add imgui glfw/gl3 backend
+if( NOT IMGUI_GLFW_GL3_BACKEND_FOUND )
+    add_library(imgui_glfw_gl3_backend STATIC 
+        "${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.cpp"
+        "${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.cpp"
+    )
+    target_include_directories(imgui_glfw_gl3_backend PUBLIC "${THIRD_PARTY_DIR}/imgui/backends")
+    target_include_directories(imgui_glfw_gl3_backend PRIVATE "${THIRD_PARTY_DIR}/imgui")
+    target_link_libraries(imgui_glfw_gl3_backend PRIVATE imgui glfw)
+    set_property(TARGET imgui_glfw_gl3_backend PROPERTY FOLDER "third_party")
+    set(IMGUI_GLFW_GL3_BACKEND_FOUND TRUE PARENT_SCOPE)
+endif()
 
-    # add imgui glfw/gl3 backend
-    if( NOT IMGUI_GLFW_GL3_BACKEND_FOUND )
-        add_library(imgui_glfw_gl3_backend STATIC 
-            "${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.cpp"
-            "${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.cpp"
-        )
-        target_include_directories(imgui_glfw_gl3_backend PUBLIC "${THIRD_PARTY_DIR}/imgui/backends")
-        target_include_directories(imgui_glfw_gl3_backend PRIVATE "${THIRD_PARTY_DIR}/imgui")
-        target_link_libraries(imgui_glfw_gl3_backend PRIVATE imgui glfw)
-        set_property(TARGET imgui_glfw_gl3_backend PROPERTY FOLDER "third_party")
-        set(IMGUI_GLFW_GL3_BACKEND_FOUND TRUE PARENT_SCOPE)
-    endif()
-    # link imgui backend with project
-    target_link_libraries(${PROJECT_TARGET} PUBLIC imgui_glfw_gl3_backend)
-endmacro()
+# link imgui backend with project
+target_link_libraries(${PROJECT_TARGET} PUBLIC imgui_glfw_gl3_backend)

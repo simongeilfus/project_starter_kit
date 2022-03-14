@@ -161,34 +161,25 @@ As mentioned before, adding a `project.cmake` allows to customize the configurat
 set(THIRD_PARTY_LIBRARIES glfw glm)
 ```
 
-If the project requires a more custom configuration a couple of macros can be defined to override the system's default behavior.  
-
-**`macro(project_configuration)`** can be defined to execute a configuration after the project's target has been created. You can use `${PROJECT_TARGET}` as the target name to set any target property, libraries, include directories, etc... specific to that project. 
+The code contained inside the project's `project.cmake` will be executed after the call to `add_executable` but before the rest of the project configuration. You can use `${PROJECT_TARGET}` as the target name to set any target property, libraries, include directories, etc... specific to that project. 
 
 ```cmake
-macro(project_configuration)
-    # set the executable type
-    target_link_options(${PROJECT_TARGET} PRIVATE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
-endmacro()
-```
-
-**`macro(project_executable)`** can be defined to be used in place of the default `add_executable` for more complex situations where things need to be setup before and after adding the executable.
-
-```cmake
-macro(project_executable)
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTORCC ON)
-    set(CMAKE_AUTOUIC ON)
-    set(CMAKE_PREFIX_PATH "D:/Qt/6.2.3/msvc2019_64/")
-
-    find_package(Qt6 COMPONENTS Core Widgets Gui REQUIRED)
-    
-    add_executable(${PROJECT_TARGET} ${PROJECT_OS_BUNDLE} ${PROJECT_SOURCE_FILES} ${PROJECT_UI_FILES} ${PROJECT_RESOURCES_FILES})
-endmacro()  
+# set the executable type
+target_link_options(${PROJECT_TARGET} PRIVATE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
 ```
 
 The following variables are accessible for each project: `${PROJECT_DIR}`, `${PROJECT_OUTPUT_DIR}`, 
 `${PROJECT_TARGET}`, `${PROJECT_OS_BUNDLE}`, `${PROJECT_SOURCE_FILES}`, `${PROJECT_UI_FILES}`, `${PROJECT_RESOURCES_FILES}`.
+
+If there's a need for more granularity or to customize what happens before or inside the call to `add_executable` a project can also use a **`CMakeLists.txt`** instead. By doing so the project loses all the default configuration and the `CMakeLists.txt` becomes responsible for fully setting up the project. The variables mentioned before are still available so a basic example would look like this:
+
+```cmake
+find_package(SomeLibrary REQUIRED)
+add_executable(${PROJECT_TARGET} ${PROJECT_OS_BUNDLE} ${PROJECT_SOURCE_FILES})
+target_link_libraries(${PROJECT_TARGET} PRIVATE SomeLibrary)
+```
+
+
 
 ##### Third party libraries
 

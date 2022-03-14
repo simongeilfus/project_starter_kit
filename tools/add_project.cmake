@@ -24,7 +24,6 @@
 # SOFTWARE.
 
 function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
-    
     # collect project folders and sources
     set(PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_TARGET})
     set(PROJECT_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${DEST_FOLDER_NAME}/${PROJECT_TARGET})
@@ -43,71 +42,66 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
         set(PROJECT_OS_BUNDLE ${OS_BUNDLE})
     endif()
 
-    # include project.cmake if any
-    if(EXISTS ${PROJECT_DIR}/project.cmake)
-        include(${PROJECT_DIR}/project.cmake)
-    endif()
-
-    # add executable
-    if( COMMAND project_executable )
-        # if project.cmake defines project_executable, let the project setup the executable
-        project_executable()
+    # custom CMakeLists.txt project
+    if(EXISTS ${PROJECT_DIR}/CMakeLists.txt)
+        add_subdirectory(${PROJECT_DIR})
+    # regular project
     else()
-        #otherwise use the default add_executable
+        # add the default add_executable
         add_executable(${PROJECT_TARGET} ${PROJECT_OS_BUNDLE} ${PROJECT_SOURCE_FILES} ${PROJECT_UI_FILES} ${PROJECT_RESOURCES_FILES})
-    endif()
 
-    # let project.cmake run its project configuration if any
-    if( COMMAND project_configuration )
-        project_configuration()
+        # include project.cmake if any
+        if(EXISTS ${PROJECT_DIR}/project.cmake)
+            include(${PROJECT_DIR}/project.cmake)
+        endif()
+        
+        # setup compile settings
+        if(EXISTS "${PROJECT_DIR}/include")
+            target_include_directories(${PROJECT_TARGET} PUBLIC "${PROJECT_DIR}/include")
+        else()
+            target_include_directories(${PROJECT_TARGET} PUBLIC "${PROJECT_DIR}")
+        endif()
+        target_compile_features(${PROJECT_TARGET} PUBLIC ${CXX_STANDARD})
+
+        # link common and third_party libs
+        target_link_libraries(${PROJECT_TARGET} PUBLIC ${THIRD_PARTY_LIBRARIES})
+
+        # if necessary add build step to copy assets folder and add it to the project
+        if(EXISTS ${PROJECT_DIR}/assets)
+            set(ASSETS_DIR ${PROJECT_DIR}/assets)
+            file(GLOB ASSETS "${ASSETS_DIR}/*")
+            target_sources(${PROJECT_TARGET} PUBLIC ${ASSETS})
+
+            foreach(ASSET ${ASSETS})
+                if(${ASSET} MATCHES ".hlsl|.fxh|.vsh|.psh|.fsh|.dsh|.hsh|.gsh|.ash|.msh|.csh|.glsl|.vert|.frag|.geom|.dom|.hull|.amp|.mesh|.task|.tese|.tesc|.comp|.rgen|.rint|.rmiss|.rahit|.rchit|.rcall" )
+                    source_group("Shader Files" FILES ${ASSET})
+                    set_property(SOURCE ${ASSET} PROPERTY VS_SETTINGS "ExcludedFromBuild=true")
+                else()
+                    source_group("Asset Files" FILES ${ASSET})
+                endif()
+            endforeach()
+
+            # file(TO_NATIVE_PATH ${PROJECT_OUTPUT_DIR}/assets ASSETS_DIR_SYM_LINK)
+            file(TO_NATIVE_PATH ${ASSETS_DIR} ASSETS_DIR_PATH)
+            string(REPLACE "\\" "\\\\" ASSETS_DIR_PATH "${ASSETS_DIR_PATH}")
+            target_compile_definitions(${PROJECT_TARGET} PUBLIC ASSETS_DIR="${ASSETS_DIR_PATH}")
+            # add_custom_command(TARGET ${PROJECT_TARGET} POST_BUILD
+            #             COMMAND if NOT EXIST \"${ASSETS_DIR_SYM_LINK}\" ( mklink /d \"${ASSETS_DIR_SYM_LINK}\" ${ASSETS_DIR_PATH} )
+            # )
+        endif()
+        
+        # if there's a precompiled header add the necessary project settings
+        file(GLOB_RECURSE PCH_HEADER_PATH "${PROJECT_DIR}/*pch.h")
+        if(EXISTS ${PCH_HEADER_PATH})
+            file(GLOB_RECURSE PCH_SRC_PATH "${PROJECT_DIR}/*pch.cpp")
+            set_source_files_properties("${PCH_SRC_PATH}" PROPERTIES COMPILE_FLAGS /Yc"${PCH_HEADER_PATH}")
+            target_compile_options(${PROJECT_TARGET} PUBLIC /Yu"${PCH_HEADER_PATH}")
+            target_compile_options(${PROJECT_TARGET} PUBLIC /FI"${PCH_HEADER_PATH}")
+        endif()
     endif()
-    
+        
     # set output folder
-    set_target_properties( ${PROJECT_TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_OUTPUT_DIR}" )
-    
-    # setup compile settings
-    if(EXISTS "${PROJECT_DIR}/include")
-        target_include_directories(${PROJECT_TARGET} PUBLIC "${PROJECT_DIR}/include")
-    else()
-        target_include_directories(${PROJECT_TARGET} PUBLIC "${PROJECT_DIR}")
-    endif()
-    target_compile_features(${PROJECT_TARGET} PUBLIC ${CXX_STANDARD})
-
-    # link common and third_party libs
-    target_link_libraries(${PROJECT_TARGET} PUBLIC ${THIRD_PARTY_LIBRARIES})
-
-    # if necessary add build step to copy assets folder and add it to the project
-    if(EXISTS ${PROJECT_DIR}/assets)
-        set(ASSETS_DIR ${PROJECT_DIR}/assets)
-	    file(GLOB ASSETS "${ASSETS_DIR}/*")
-        target_sources(${PROJECT_TARGET} PUBLIC ${ASSETS})
-
-        foreach(ASSET ${ASSETS})
-            if(${ASSET} MATCHES ".hlsl|.fxh|.vsh|.psh|.fsh|.dsh|.hsh|.gsh|.ash|.msh|.csh|.glsl|.vert|.frag|.geom|.dom|.hull|.amp|.mesh|.task|.tese|.tesc|.comp|.rgen|.rint|.rmiss|.rahit|.rchit|.rcall" )
-                source_group("Shader Files" FILES ${ASSET})
-                set_property(SOURCE ${ASSET} PROPERTY VS_SETTINGS "ExcludedFromBuild=true")
-            else()
-                source_group("Asset Files" FILES ${ASSET})
-            endif()
-        endforeach()
-
-        # file(TO_NATIVE_PATH ${PROJECT_OUTPUT_DIR}/assets ASSETS_DIR_SYM_LINK)
-        file(TO_NATIVE_PATH ${ASSETS_DIR} ASSETS_DIR_PATH)
-        string(REPLACE "\\" "\\\\" ASSETS_DIR_PATH "${ASSETS_DIR_PATH}")
-        target_compile_definitions(${PROJECT_TARGET} PUBLIC ASSETS_DIR="${ASSETS_DIR_PATH}")
-        # add_custom_command(TARGET ${PROJECT_TARGET} POST_BUILD
-        #             COMMAND if NOT EXIST \"${ASSETS_DIR_SYM_LINK}\" ( mklink /d \"${ASSETS_DIR_SYM_LINK}\" ${ASSETS_DIR_PATH} )
-        # )
-    endif()
-    
-    # if there's a precompiled header add the necessary project settings
-    file(GLOB_RECURSE PCH_HEADER_PATH "${PROJECT_DIR}/*pch.h")
-    if(EXISTS ${PCH_HEADER_PATH})
-        file(GLOB_RECURSE PCH_SRC_PATH "${PROJECT_DIR}/*pch.cpp")
-        set_source_files_properties("${PCH_SRC_PATH}" PROPERTIES COMPILE_FLAGS /Yc"${PCH_HEADER_PATH}")
-        target_compile_options(${PROJECT_TARGET} PUBLIC /Yu"${PCH_HEADER_PATH}")
-        target_compile_options(${PROJECT_TARGET} PUBLIC /FI"${PCH_HEADER_PATH}")
-    endif()
+    set_target_properties(${PROJECT_TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_OUTPUT_DIR}" )
 
     # move to the "DEST_FOLDER_NAME" folder
     set_property(TARGET ${PROJECT_TARGET} PROPERTY FOLDER ${DEST_FOLDER_NAME})
@@ -130,5 +124,4 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
             # default folders
         endif()
     endforeach()
-
 endfunction(add_project)
