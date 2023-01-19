@@ -44,7 +44,7 @@ goto parse_args
 
 @rem run cmake
 @rem -----------------------------------
-cmake -S . -B ./build -G "Visual Studio 16 2019" -A x64 !cmake_args!
+cmake -S . -B ./build -G "Visual Studio 17 2022" -A x64 !cmake_args!
 
 @rem end
 @rem -----------------------------------
