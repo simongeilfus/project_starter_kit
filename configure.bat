@@ -38,6 +38,7 @@ set cmake_args=-UENABLE_LPP
 if "%~1" == "" goto end_parse_args
 if "%~1" == "live++" set cmake_args=%cmake_args% -DENABLE_LPP=ON
 if "%~1" == "liveplusplus" set cmake_args=%cmake_args% -DENABLE_LPP=ON
+if "%~1" == "clean" set cmake_args=%cmake_args% --fresh
 SHIFT
 goto parse_args
 :end_parse_args
