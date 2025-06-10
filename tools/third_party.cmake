@@ -44,10 +44,128 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cinder)
     endif()
     list(APPEND THIRD_PARTY_LIBRARIES cinder )
     add_subdirectory(cinder)
+    # Override C++ standard for cinder
+    set_target_properties(cinder PROPERTIES INTERFACE_COMPILE_OPTIONS "")
+    target_compile_features(cinder PRIVATE cxx_std_17)
     set_property(TARGET cinder PROPERTY FOLDER "third_party")
     set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cinder/include/imgui)
     set(GLM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cinder/include)
 endif()
+
+# rive
+# automatically add rive if the folder exists
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime)
+    list(APPEND THIRD_PARTY_LIBRARIES rive-runtime )
+    add_library(rive-runtime STATIC)
+    target_include_directories(rive-runtime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/include")
+    target_include_directories(rive-runtime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/include")
+    set_property(TARGET rive-runtime PROPERTY FOLDER "third_party")
+    
+    # Add all .hpp files in renderer and renderer/gl directories
+    file(GLOB RIVE_RENDERER_HEADERS
+        "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/include/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/include/gl/*.hpp"
+    )
+
+    # Add all .cpp files in renderer and renderer/gl directories
+    file(GLOB RIVE_RENDERER_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/src/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/src/gl/*.cpp"
+    )
+
+    # Remove load_gles_extensions.cpp from the sources
+    list(REMOVE_ITEM RIVE_RENDERER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/src/gl/load_gles_extensions.cpp")
+
+    # Add all .cpp files in utils directory
+    file(GLOB RIVE_UTILS_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/utils/*.cpp"
+    )
+
+    # Add the headers and sources to the target
+    target_sources(rive-runtime PRIVATE ${RIVE_RENDERER_HEADERS} ${RIVE_RENDERER_SOURCES} ${RIVE_UTILS_SOURCES})
+
+    # Set C++ standard to C++20
+    target_compile_features(rive-runtime PUBLIC cxx_std_20)
+    
+    # Suppress warning C4267, C4996, and C4244 for rive-runtime
+    target_compile_options(rive-runtime PRIVATE /wd4267 /wd4996 /wd4244)
+
+    # Define RIVE_DESKTOP_GL preprocessor macro
+    target_compile_definitions(rive-runtime PUBLIC RIVE_DESKTOP_GL)
+
+    # Define other preprocessor macros
+    target_compile_definitions(rive-runtime PUBLIC RIVE_DECODERS)
+    target_compile_definitions(rive-runtime PUBLIC WITH_RIVE_TOOLS)
+    target_compile_definitions(rive-runtime PUBLIC WITH_RIVE_TEXT)
+    target_compile_definitions(rive-runtime PUBLIC WITH_RIVE_LAYOUT)
+
+    # Add the decoder include directory
+    target_include_directories(rive-runtime PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/decoders/include")
+    
+    # Add cinder's include directory so <glad/glad.h> can be found
+    target_include_directories(rive-runtime PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/cinder/include")
+
+    # Organize headers into folders
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/include" PREFIX "Header Files" FILES ${RIVE_RENDERER_HEADERS})
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/src" PREFIX "Source Files" FILES ${RIVE_RENDERER_SOURCES})
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/utils" PREFIX "Source Files/Utils" FILES ${RIVE_UTILS_SOURCES})
+
+    # Add glad_custom header and source files
+    target_sources(rive-runtime PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../include/glad_custom/glad_custom.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../src/glad_custom/glad_custom.c"
+    )
+
+    # Add custom glad and KHR include directory
+    target_include_directories(rive-runtime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include/glad_custom")
+
+    # Add shaders include directories
+    target_include_directories(rive-runtime PRIVATE 
+        "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/src/"
+        "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/include"
+    )
+    
+    # Check if the out folder exists, if not, call build_rive.bat
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive.lib" OR
+        NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive.lib")
+        message(WARNING "Rive libraries not found. Attempting to build Rive libraries...")
+        execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../tools/rive/build_rive.bat"
+                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../tools/rive"
+                        RESULT_VARIABLE result)
+        if(NOT result EQUAL 0)
+            message(FATAL_ERROR "Failed to build Rive libraries.")
+        endif()
+    endif()
+
+    # Link additional libraries
+    target_link_libraries(rive-runtime PUBLIC
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive.lib>
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_decoders.lib>
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_sheenbidi.lib>
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_harfbuzz.lib>
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_yoga.lib>
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/libjpeg.lib>
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/libpng.lib>
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/libwebp.lib>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive.lib>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_decoders.lib>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_sheenbidi.lib>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_harfbuzz.lib>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_yoga.lib>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/libjpeg.lib>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/libpng.lib>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/libwebp.lib>
+    )
+endif()
+
+# libRvVideo
+# if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo)
+#     list(APPEND THIRD_PARTY_LIBRARIES libRvVideo)
+#     add_library(libRvVideo INTERFACE)
+#     target_include_directories(libRvVideo INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo/include")
+#     target_link_directories(libRvVideo INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo/lib/msw/$(PlatformTarget)/$(Configuration)/v142")
+#     target_link_libraries(libRvVideo INTERFACE RvVideo.lib)
+# endif()
 
 # csv
 # automatically add fast-cpp-csv-parser if the folder exists
