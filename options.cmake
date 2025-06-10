@@ -33,7 +33,7 @@ set(PROJECT project_starter_kit)
 set(STARTUP_PROJECT_NAME "")
 
 # C++ Standard
-set(CXX_STANDARD cxx_std_17)
+set(CXX_STANDARD cxx_std_20)
 
 # os bundle
 set(OS_BUNDLE AUTO)
