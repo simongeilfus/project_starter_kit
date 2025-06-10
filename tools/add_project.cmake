@@ -26,7 +26,7 @@
 function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
     # collect project folders and sources
     set(PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_TARGET})
-    set(PROJECT_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${DEST_FOLDER_NAME}/${PROJECT_TARGET})
+    set(PROJECT_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/${DEST_FOLDER_NAME}/${PROJECT_TARGET})
     file(GLOB_RECURSE PROJECT_SOURCE_FILES ${PROJECT_DIR}/*.cpp ${PROJECT_DIR}/*.h)
     file(GLOB_RECURSE PROJECT_RESOURCES_FILES ${PROJECT_DIR}/*.qrc)
     file(GLOB_RECURSE PROJECT_UI_FILES ${PROJECT_DIR}/*.ui)
@@ -67,24 +67,66 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
         target_link_libraries(${PROJECT_TARGET} PUBLIC ${THIRD_PARTY_LIBRARIES})
 
         # if necessary add build step to copy assets folder and add it to the project
-        if(EXISTS ${PROJECT_DIR}/assets)
+        if(EXISTS ${PROJECT_DIR}/assets AND IS_DIRECTORY ${PROJECT_DIR}/assets)
             set(ASSETS_DIR ${PROJECT_DIR}/assets)
             file(GLOB ASSETS "${ASSETS_DIR}/*")
             target_sources(${PROJECT_TARGET} PUBLIC ${ASSETS})
 
             foreach(ASSET ${ASSETS})
-                if(${ASSET} MATCHES ".hlsl|.fxh|.vsh|.psh|.fsh|.dsh|.hsh|.gsh|.ash|.msh|.csh|.glsl|.vert|.frag|.geom|.dom|.hull|.amp|.mesh|.task|.tese|.tesc|.comp|.rgen|.rint|.rmiss|.rahit|.rchit|.rcall" )
+                if(${ASSET} MATCHES "\\.(hlsl|fxh|vsh|psh|fsh|dsh|hsh|gsh|ash|msh|csh|glsl|vert|frag|geom|dom|hull|amp|mesh|task|tese|tesc|comp|rgen|rint|rmiss|rahit|rchit|rcall)$" )
                     source_group("Shader Files" FILES ${ASSET})
                     set_property(SOURCE ${ASSET} PROPERTY VS_SETTINGS "ExcludedFromBuild=true")
                 else()
                     source_group("Asset Files" FILES ${ASSET})
                 endif()
             endforeach()
+            
+            get_filename_component( ASSETS_DEST_PATH "${PROJECT_OUTPUT_DIR}/assets" ABSOLUTE )
+            
+            if( EXISTS "${ASSETS_DEST_PATH}" )
+                file( REMOVE_RECURSE "${ASSETS_DEST_PATH}" )
+            endif()
 
+            # Get OS dependent path to use in `execute_process`
+            file( TO_NATIVE_PATH "${ASSETS_DEST_PATH}" link )
+            file( TO_NATIVE_PATH "${ASSETS_DIR}" target )
+            set( link_cmd cmd.exe /c mklink /J ${link} ${target} )
+
+            # it appears the file( REMOVE_RECURSE ) command above doesn't work with windows junctions,
+            # so remove it using a native command if it still exists.
+            if( EXISTS "${ASSETS_DEST_PATH}" )
+                message( WARNING "assets path still exists, attempting to remove it again.." )
+                set( rmdir_cmd cmd.exe /c rmdir ${link} )
+                execute_process(
+                    COMMAND ${rmdir_cmd}
+                    RESULT_VARIABLE resultCode
+                    ERROR_VARIABLE errorMessage
+                )
+
+                if( NOT resultCode EQUAL 0 )
+                    message( WARNING "\nFailed to rmdir '${ASSETS_DIR}'" )
+                endif()
+            endif()
+
+            # Ensure the target output directory exists
+            file(MAKE_DIRECTORY "${PROJECT_OUTPUT_DIR}")
+
+            # make a windows symlink using mklink
+            execute_process(
+                COMMAND ${link_cmd}
+                RESULT_VARIABLE resultCode
+                ERROR_VARIABLE errorMessage
+            )
+
+            if( NOT resultCode EQUAL 0 )
+                message( WARNING "\nFailed to symlink '${ASSETS_DIR}' to '${ASSETS_DEST_PATH}', result: ${resultCode} error: ${errorMessage}" )
+            endif()
+            #endif()
+            
             # file(TO_NATIVE_PATH ${PROJECT_OUTPUT_DIR}/assets ASSETS_DIR_SYM_LINK)
-            file(TO_NATIVE_PATH ${ASSETS_DIR} ASSETS_DIR_PATH)
-            string(REPLACE "\\" "\\\\" ASSETS_DIR_PATH "${ASSETS_DIR_PATH}")
-            target_compile_definitions(${PROJECT_TARGET} PUBLIC ASSETS_DIR="${ASSETS_DIR_PATH}")
+            #file(TO_NATIVE_PATH ${ASSETS_DIR} ASSETS_DIR_PATH)
+            #string(REPLACE "\\" "\\\\" ASSETS_DIR_PATH "${ASSETS_DIR_PATH}")
+            #target_compile_definitions(${PROJECT_TARGET} PUBLIC ASSETS_DIR="${ASSETS_DIR_PATH}")
             # add_custom_command(TARGET ${PROJECT_TARGET} POST_BUILD
             #             COMMAND if NOT EXIST \"${ASSETS_DIR_SYM_LINK}\" ( mklink /d \"${ASSETS_DIR_SYM_LINK}\" ${ASSETS_DIR_PATH} )
             # )
@@ -100,8 +142,11 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
         endif()
     endif()
         
-    # set output folder
-    set_target_properties(${PROJECT_TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_OUTPUT_DIR}" )
+    # set output folders
+    set_target_properties(${PROJECT_TARGET} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${PROJECT_OUTPUT_DIR}"
+        PDB_OUTPUT_DIRECTORY "${PROJECT_OUTPUT_DIR}"
+    )
 
     # move to the "DEST_FOLDER_NAME" folder
     set_property(TARGET ${PROJECT_TARGET} PROPERTY FOLDER ${DEST_FOLDER_NAME})

@@ -25,6 +25,18 @@
 
 import os, sys, shutil, glob, argparse, subprocess
 
+# Read the project directory from options.cmake
+def get_projects_directory():
+    with open(os.path.join(os.path.dirname(__file__), '..', 'options.cmake'), 'r') as file:
+        for line in file:
+            if line.startswith('set(PROJECTS_DIRECTORY'):
+                parts = line.split()
+                if len(parts) > 1:
+                    return parts[1].strip(')')
+    return "projects"
+
+projects_dir = get_projects_directory()
+
 # search for available templates
 templates = []
 template_directory = os.fsencode( "tools/project_templates/" )
@@ -46,7 +58,7 @@ args = parser.parse_args()
 
 # make sure the project doesn't exist
 project_name = args.project_name
-project_dir = os.path.join( "projects", project_name )
+project_dir = os.path.join( projects_dir, project_name )
 if os.path.exists( project_dir ):
     print( "Project %s already exists" % project_name )
     exit()
