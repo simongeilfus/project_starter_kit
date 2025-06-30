@@ -420,3 +420,102 @@ if(${REQUIRES_VULKAN})
         list(APPEND THIRD_PARTY_LIBRARIES ${Vulkan_LIBRARY})
     endif()
 endif()
+
+# Generic third-party library detection
+# automatically add any remaining folders that contain include and/or src directories
+
+# List of libraries to ignore during auto-detection
+set(IGNORED_LIBRARIES
+    "liveplusplus"
+    "pybind11"
+)
+
+file(GLOB POTENTIAL_LIBRARIES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
+
+foreach(LIBRARY_DIR ${POTENTIAL_LIBRARIES})
+    # Skip if it's not a directory
+    if(NOT IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR})
+        continue()
+    endif()
+    
+    # Skip if already processed by explicit checks above
+    if(${LIBRARY_DIR} IN_LIST THIRD_PARTY_LIBRARIES)
+        continue()
+    endif()
+    
+    # Skip if in the ignored libraries list
+    if(${LIBRARY_DIR} IN_LIST IGNORED_LIBRARIES)
+        continue()
+    endif()
+    
+    # Skip common non-library directories
+    if(${LIBRARY_DIR} MATCHES "^(build|cmake|docs?|examples?|tests?|samples?|tools?|scripts?)$")
+        continue()
+    endif()
+    
+    # Check if the directory has its own CMakeLists.txt
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/CMakeLists.txt)
+        message(STATUS "Auto-detected third-party library with CMake: ${LIBRARY_DIR}")
+        add_subdirectory(${LIBRARY_DIR})
+        list(APPEND THIRD_PARTY_LIBRARIES ${LIBRARY_DIR})
+        # Override folder property to ensure it goes into third_party folder
+        set_property(TARGET ${LIBRARY_DIR} PROPERTY FOLDER "third_party")
+        continue()
+    endif()
+    
+    # Check if the directory contains include and/or src subdirectories
+    set(HAS_INCLUDE FALSE)
+    set(HAS_SRC FALSE)
+    
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include)
+        set(HAS_INCLUDE TRUE)
+    endif()
+    
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src)
+        set(HAS_SRC TRUE)
+    endif()
+    
+    # Add library if it has include or src directories
+    if(HAS_INCLUDE OR HAS_SRC)
+        message(STATUS "Auto-detected third-party library: ${LIBRARY_DIR}")
+        
+        if(HAS_SRC)
+            # Create a static library with source files
+            file(GLOB_RECURSE LIBRARY_SOURCES 
+                "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.cpp"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.c"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.cc"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.cxx"
+            )
+            
+            if(LIBRARY_SOURCES)
+                add_library(${LIBRARY_DIR} STATIC ${LIBRARY_SOURCES})
+                
+                # Add include directories
+                if(HAS_INCLUDE)
+                    target_include_directories(${LIBRARY_DIR} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include")
+                endif()
+                
+                # Also include src directory for internal headers
+                target_include_directories(${LIBRARY_DIR} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src")
+                
+                set_property(TARGET ${LIBRARY_DIR} PROPERTY FOLDER "third_party")
+            else()
+                # No source files found, create interface library
+                add_library(${LIBRARY_DIR} INTERFACE)
+                if(HAS_INCLUDE)
+                    target_include_directories(${LIBRARY_DIR} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include")
+                endif()
+            endif()
+        else()
+            # Only include directory, create interface library
+            add_library(${LIBRARY_DIR} INTERFACE)
+            target_include_directories(${LIBRARY_DIR} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include")
+        endif()
+        
+        # Set folder property for IDE organization (works for both STATIC and INTERFACE libraries)
+        set_property(TARGET ${LIBRARY_DIR} PROPERTY FOLDER "third_party")
+        
+        list(APPEND THIRD_PARTY_LIBRARIES ${LIBRARY_DIR})
+    endif()
+endforeach()
