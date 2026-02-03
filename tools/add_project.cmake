@@ -64,7 +64,70 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
         target_compile_features(${PROJECT_TARGET} PUBLIC ${CXX_STANDARD})
 
         # link common and third_party libs
-        target_link_libraries(${PROJECT_TARGET} PUBLIC ${THIRD_PARTY_LIBRARIES})
+        if( ENABLE_LXX_CONFIGS )
+            target_link_libraries(${PROJECT_TARGET} PUBLIC
+                ${THIRD_PARTY_LIBRARIES}
+                $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:liveplusplus>
+            )
+            target_compile_definitions(${PROJECT_TARGET} PUBLIC
+                $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:LPP_ENABLED>
+                $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:LPP_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/third_party/LivePP\">
+            )
+            target_link_libraries(${PROJECT_TARGET} PUBLIC
+                $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:Shlwapi>
+                $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:Opengl32>
+            )
+        else()
+            target_link_libraries(${PROJECT_TARGET} PUBLIC ${THIRD_PARTY_LIBRARIES})
+        endif()
+
+        # Add post-build steps to copy registered runtime DLLs
+        foreach(DLL_ENTRY ${THIRD_PARTY_RUNTIME_DLLS})
+            string(REPLACE "|" ";" DLL_PARTS "${DLL_ENTRY}")
+            list(GET DLL_PARTS 0 DLL_SOURCE)
+            list(LENGTH DLL_PARTS PARTS_COUNT)
+            if(PARTS_COUNT GREATER 1)
+                list(GET DLL_PARTS 1 DLL_SUBDIR)
+            else()
+                set(DLL_SUBDIR "")
+            endif()
+
+            # Determine destination directory
+            if(DLL_SUBDIR STREQUAL "")
+                set(DLL_DEST "$<TARGET_FILE_DIR:${PROJECT_TARGET}>")
+            else()
+                set(DLL_DEST "$<TARGET_FILE_DIR:${PROJECT_TARGET}>/${DLL_SUBDIR}")
+            endif()
+
+            # Check if source is a directory or file
+            if(DLL_SOURCE MATCHES "\\$<")
+                # Contains generator expression - assume it's a file
+                add_custom_command(TARGET ${PROJECT_TARGET} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${DLL_SOURCE}"
+                    "${DLL_DEST}"
+                    COMMENT "Copying runtime DLL"
+                )
+            else()
+                # Check if it's a directory
+                if(IS_DIRECTORY "${DLL_SOURCE}")
+                    add_custom_command(TARGET ${PROJECT_TARGET} POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        "${DLL_SOURCE}"
+                        "${DLL_DEST}"
+                        COMMENT "Copying runtime DLLs"
+                    )
+                else()
+                    # It's a file path
+                    add_custom_command(TARGET ${PROJECT_TARGET} POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${DLL_SOURCE}"
+                        "${DLL_DEST}"
+                        COMMENT "Copying runtime DLL"
+                    )
+                endif()
+            endif()
+        endforeach()
 
         # if necessary add build step to copy assets folder and add it to the project
         if(EXISTS ${PROJECT_DIR}/assets AND IS_DIRECTORY ${PROJECT_DIR}/assets)
@@ -78,6 +141,7 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
                     set_property(SOURCE ${ASSET} PROPERTY VS_SETTINGS "ExcludedFromBuild=true")
                 else()
                     source_group("Asset Files" FILES ${ASSET})
+                    set_property(SOURCE ${ASSET} PROPERTY VS_SETTINGS "ExcludedFromBuild=true")
                 endif()
             endforeach()
             
@@ -151,6 +215,17 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
     # move to the "DEST_FOLDER_NAME" folder
     set_property(TARGET ${PROJECT_TARGET} PROPERTY FOLDER ${DEST_FOLDER_NAME})
     
+    # Get all sources including those propagated from INTERFACE libraries
+    get_target_property(ALL_SOURCES ${PROJECT_TARGET} SOURCES)
+
+    # Separate project sources from third-party sources
+    set(THIRD_PARTY_SOURCES "")
+    foreach(src ${ALL_SOURCES})
+        # If source is NOT from project directory, it's from third-party
+        if(NOT src MATCHES "^${PROJECT_DIR}")
+            list(APPEND THIRD_PARTY_SOURCES ${src})
+        endif()
+
     # match folder structure of source files
     foreach(source IN ITEMS ${PROJECT_SOURCE_FILES})
         if (IS_ABSOLUTE "${source}")
@@ -159,14 +234,39 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
             set(source_rel "${source}")
         endif()
         get_filename_component(source_path "${source_rel}" PATH)
-        string(REPLACE "/" "\\" source_path_msvc "${source_path}")
-        # if source is not at the root of the project folder
-        if( NOT ${source_path} STREQUAL ${PROJECT_DIR} )    
-            string(REPLACE "src" "Source Files" source_path_msvc "${source_path_msvc}")
-            string(REPLACE "include" "Header Files" source_path_msvc "${source_path_msvc}")
-            source_group("${source_path_msvc}" FILES "${source}")
-        else()
-            # default folders
+        get_filename_component(source_ext "${source}" EXT)
+
+        # Determine if header or source file
+        set(is_header FALSE)
+        if(source_ext MATCHES "\\.(h|hpp|hxx|inl)$")
+            set(is_header TRUE)
+        endif()
+
+        # Build the Visual Studio folder path
+        if(NOT source_path STREQUAL "")
+            # Remove src/ or include/ prefix and preserve subdirectory structure
+            string(REGEX REPLACE "^src[/\\]?" "" source_path_clean "${source_path}")
+            string(REGEX REPLACE "^include[/\\]?" "" source_path_clean "${source_path_clean}")
+
+            # Convert to backslashes for VS
+            string(REPLACE "/" "\\" source_path_msvc "${source_path_clean}")
+
+            # Prepend Header Files or Source Files
+            if(is_header)
+                if(source_path_msvc STREQUAL "")
+                    set(group_path "Header Files")
+                else()
+                    set(group_path "Header Files\\${source_path_msvc}")
+                endif()
+            else()
+                if(source_path_msvc STREQUAL "")
+                    set(group_path "Source Files")
+                else()
+                    set(group_path "Source Files\\${source_path_msvc}")
+                endif()
+            endif()
+
+            source_group("${group_path}" FILES "${source}")
         endif()
     endforeach()
 endfunction(add_project)

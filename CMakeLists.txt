@@ -36,17 +36,35 @@ endif()
 
 message(STATUS "Generating project solution for: ${PROJECT}")
 
+# Enable extra configs if Live++ is enabled
+if(ENABLE_LXX_CONFIGS)
+    set(CMAKE_CONFIGURATION_TYPES "Debug;Release;DebugLxx;ReleaseLxx" CACHE STRING "" FORCE)
+else()
+    set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+endif()
+
 # set the project name
 project(${PROJECT})
 
 # change runtime library
-if(MSVC)
-    add_compile_options($<$<CONFIG:Release>:/MT> # Runtime library: Multi-threaded
-                    $<$<CONFIG:RelWithDebInfo>:/MT> # Runtime library: Multi-threaded                           
+if(ENABLE_LXX_CONFIGS)
+    add_compile_options($<$<OR:$<CONFIG:Release>,$<CONFIG:ReleaseLxx>>:/MT> # Runtime library: Multi-threaded Debug
+                        $<$<OR:$<CONFIG:Debug>,$<CONFIG:DebugLxx>>:/MTd> # Runtime library: Multi-threaded Debug
+                    )
+    add_compile_options($<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:/Zi>)
+    add_link_options(
+        $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:/FUNCTIONPADMIN>
+        $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:/OPT:NOREF>
+        $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:/OPT:NOICF>
+        $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:/DEBUG:FULL>
+    )
+else()
+    add_compile_options($<$<CONFIG:Release>:/MT> # Runtime library: Multi-threaded                        
                     $<$<CONFIG:Debug>:/MTd> # Runtime library: Multi-threaded Debug
                     )
 endif()
-                    
+
+
 # third party libraries
 set(THIRD_PARTY_LIBRARIES "" )
 add_subdirectory(${THIRD_PARTY_DIRECTORY})
@@ -72,7 +90,22 @@ if( SOURCES )
     # specify the C++ standard
     target_compile_features(${PROJECT} PRIVATE ${CXX_STANDARD})
     # link third party libraries
-    target_link_libraries(${PROJECT} PRIVATE ${THIRD_PARTY_LIBRARIES})    
+    # Use PUBLIC for THIRD_PARTY_LIBRARIES so IMPORTED targets propagate through our STATIC library
+    if( ENABLE_LXX_CONFIGS )
+        target_link_libraries(${PROJECT} PUBLIC ${THIRD_PARTY_LIBRARIES})
+        target_link_libraries(${PROJECT} PRIVATE
+            $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:liveplusplus>
+        )
+        target_compile_definitions(${PROJECT} PRIVATE
+            $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:LPP_ENABLED>
+            $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:LPP_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/third_party/LivePP\">
+        )
+        target_link_libraries(${PROJECT} PRIVATE
+            $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:Shlwapi>
+            $<$<OR:$<CONFIG:DebugLxx>,$<CONFIG:ReleaseLxx>>:Opengl32>
+        )
+    else()
+        target_link_libraries(${PROJECT} PUBLIC ${THIRD_PARTY_LIBRARIES})
     # move libs into folders
     set_property(TARGET ${PROJECT} PROPERTY FOLDER "${PROJECT}")
     # match directory structure

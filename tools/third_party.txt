@@ -13,6 +13,7 @@ imgui https://github.com/ocornut/ImGui.git
 imgui_utils https://github.com/simongeilfus/imgui_utils.git
 json https://github.com/nlohmann/json.git
 liveplusplus https://github.com/simongeilfus/liveplusplus.git
+nvrhi https://github.com/NVIDIA-RTX/NVRHI.git
 pybind11 https://github.com/pybind/pybind11.git
 sokol https://github.com/floooh/sokol.git
 stb https://github.com/nothings/stb.git
