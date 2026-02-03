@@ -28,6 +28,28 @@
 
 set(REQUIRES_VULKAN FALSE CACHE BOOL "" FORCE)
 
+# Runtime DLL registration system
+#----------------------------------------------------------------
+# Global list to track runtime DLLs that need to be copied to project output directories
+set(THIRD_PARTY_RUNTIME_DLLS "" CACHE INTERNAL "List of runtime DLLs to copy")
+
+# Function to register a runtime DLL for automatic copying
+# Usage: register_runtime_dll(SOURCE_PATH DEST_SUBDIR)
+#   SOURCE_PATH: Path to DLL file or directory containing DLLs (supports generator expressions)
+#   DEST_SUBDIR: Optional subdirectory in output dir (e.g., "D3D12" for D3D12/file.dll)
+function(register_runtime_dll SOURCE_PATH)
+    set(DEST_SUBDIR "")
+    if(ARGC GREATER 1)
+        set(DEST_SUBDIR "${ARGV1}")
+    endif()
+
+    list(APPEND THIRD_PARTY_RUNTIME_DLLS "${SOURCE_PATH}|${DEST_SUBDIR}")
+    set(THIRD_PARTY_RUNTIME_DLLS "${THIRD_PARTY_RUNTIME_DLLS}" CACHE INTERNAL "List of runtime DLLs to copy")
+endfunction()
+
+# CUDA Utilities
+include(${CMAKE_CURRENT_SOURCE_DIR}/../tools/cuda.cmake)
+
 # cereal
 # automatically add cereal if the folder exists
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cereal)
@@ -40,16 +62,16 @@ endif()
 # automatically add cinder if the folder exists
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cinder)
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
-        set(CINDER_IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+        set(CINDER_DISABLE_IMGUI TRUE CACHE BOOL "Disable Cinder ImGui integration" FORCE)
+    else()
+        set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cinder/include/imgui)
     endif()
     list(APPEND THIRD_PARTY_LIBRARIES cinder )
     add_subdirectory(cinder)
-    # Override C++ standard for cinder
     set_target_properties(cinder PROPERTIES INTERFACE_COMPILE_OPTIONS "")
     target_compile_features(cinder PRIVATE cxx_std_17)
-    set_property(TARGET cinder PROPERTY FOLDER "third_party")
-    set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cinder/include/imgui)
     set(GLM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cinder/include)
+    set_property(TARGET cinder PROPERTY FOLDER "third_party")
 endif()
 
 # rive
@@ -85,7 +107,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime)
     target_sources(rive-runtime PRIVATE ${RIVE_RENDERER_HEADERS} ${RIVE_RENDERER_SOURCES} ${RIVE_UTILS_SOURCES})
 
     # Set C++ standard to C++20
-    target_compile_features(rive-runtime PUBLIC cxx_std_20)
+    target_compile_features(rive-runtime PUBLIC ${CXX_STANDARD})
     
     # Suppress warning C4267, C4996, and C4244 for rive-runtime
     target_compile_options(rive-runtime PRIVATE /wd4267 /wd4996 /wd4244)
@@ -139,33 +161,83 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime)
 
     # Link additional libraries
     target_link_libraries(rive-runtime PUBLIC
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive.lib>
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_decoders.lib>
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_sheenbidi.lib>
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_harfbuzz.lib>
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_yoga.lib>
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/libjpeg.lib>
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/libpng.lib>
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/libwebp.lib>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive.lib>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_decoders.lib>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_sheenbidi.lib>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_harfbuzz.lib>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_yoga.lib>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/libjpeg.lib>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/libpng.lib>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/libwebp.lib>
+        $<$<OR:$<CONFIG:Debug>,$<CONFIG:DebugLxx>>:
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_decoders.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_sheenbidi.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_harfbuzz.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/rive_yoga.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/libjpeg.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/libpng.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/debug/libwebp.lib
+        >
+        $<$<OR:$<CONFIG:Release>,$<CONFIG:ReleaseLxx>>:
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_decoders.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_sheenbidi.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_harfbuzz.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/rive_yoga.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/libjpeg.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/libpng.lib
+            ${CMAKE_CURRENT_SOURCE_DIR}/rive-runtime/renderer/out/release/libwebp.lib
+        >
     )
 endif()
 
+# stereolabs_zed
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/stereolabs_zed")
+    list(APPEND THIRD_PARTY_LIBRARIES stereolabs_zed)
+    file(GLOB STEREOLABS_ZED_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/stereolabs_zed/src/*.cpp")
+    add_library(stereolabs_zed STATIC ${STEREOLABS_ZED_SOURCES})
+    set_target_properties(stereolabs_zed PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/third_party/stereolabs_zed/$<CONFIG>"
+    )  
+
+    if(NOT DEFINED CUDA_INCLUDE_DIR OR NOT DEFINED CUDA_LIB_DIR OR NOT DEFINED CUDA_VERSION)
+        find_highest_cuda_version(CUDA_INCLUDE_DIR CUDA_LIB_DIR CUDA_VERSION "12.0" "12.9")
+    endif()
+    if(NOT CUDA_INCLUDE_DIR OR NOT CUDA_LIB_DIR)
+        message(FATAL_ERROR "No supported CUDA include/lib directory found!")
+    else()
+        message(STATUS "CUDA include: ${CUDA_INCLUDE_DIR}")
+        message(STATUS "CUDA lib: ${CUDA_LIB_DIR}")
+    endif()
+
+    target_include_directories(stereolabs_zed PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/stereolabs_zed/include"
+        "C:/Program Files (x86)/ZED SDK/include"
+        "${CUDA_INCLUDE_DIR}"
+    )
+    target_link_directories(stereolabs_zed PUBLIC
+        "C:/Program Files (x86)/ZED SDK/lib"
+        "${CUDA_LIB_DIR}"
+    )
+    target_link_libraries(stereolabs_zed PUBLIC sl_zed64.lib cudart.lib cuda.lib)
+    if(TARGET cinder)
+        target_link_libraries(stereolabs_zed PUBLIC cinder)
+    else()
+        message(WARNING "Cinder target not found - stereolabs_zed may not work properly")
+    endif()
+    target_compile_features(stereolabs_zed PRIVATE ${CXX_STANDARD})
+
+    set_property(TARGET stereolabs_zed PROPERTY FOLDER "third_party")
+endif()
+
 # libRvVideo
-# if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo)
-#     list(APPEND THIRD_PARTY_LIBRARIES libRvVideo)
-#     add_library(libRvVideo INTERFACE)
-#     target_include_directories(libRvVideo INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo/include")
-#     target_link_directories(libRvVideo INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo/lib/msw/$(PlatformTarget)/$(Configuration)/v142")
-#     target_link_libraries(libRvVideo INTERFACE RvVideo.lib)
-# endif()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo)
+    list(APPEND THIRD_PARTY_LIBRARIES libRvVideo)
+    add_library(libRvVideo INTERFACE)
+    target_include_directories(libRvVideo INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo/include")
+    if(ENABLE_LXX_CONFIGS)
+        target_link_directories(libRvVideo INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo/lib/msw/$<IF:$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>,x64,x86>/$<IF:$<OR:$<CONFIG:Debug>,$<CONFIG:DebugLxx>>,Debug,Release>/${CMAKE_VS_PLATFORM_TOOLSET}")
+    else()
+        target_link_directories(libRvVideo INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo/lib/msw/$<IF:$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>,x64,x86>/$<IF:$<CONFIG:Debug>,Debug,Release>/${CMAKE_VS_PLATFORM_TOOLSET}")
+    endif()
+    target_link_libraries(libRvVideo INTERFACE RvVideo.lib)
+
+    # Register FFmpeg DLLs for automatic copying
+    register_runtime_dll("${CMAKE_CURRENT_SOURCE_DIR}/libRvVideo/FFmpeg/lib/msw/x64")
+endif()
 
 # csv
 # automatically add fast-cpp-csv-parser if the folder exists
@@ -190,6 +262,33 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/date)
     add_library(date INTERFACE)
     target_include_directories(date INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/date/include")
 endif()
+
+# DirectXShaderCompiler
+# automatically add DirectXShaderCompiler if the folder exists
+# if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/DirectXShaderCompiler)
+#     set(ENABLE_SPIRV_CODEGEN ON CACHE BOOL "" FORCE)
+#     set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "")
+#     set(LLVM_APPEND_VC_REV ON CACHE BOOL "")
+#     set(LLVM_DEFAULT_TARGET_TRIPLE "dxil-ms-dx" CACHE STRING "")
+#     set(LLVM_ENABLE_EH ON CACHE BOOL "")
+#     set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
+#     set(LLVM_INCLUDE_DOCS OFF CACHE BOOL "")
+#     set(LLVM_INCLUDE_EXAMPLES OFF CACHE BOOL "")
+#     set(LLVM_OPTIMIZED_TABLEGEN OFF CACHE BOOL "")
+#     set(LLVM_TARGETS_TO_BUILD "None" CACHE STRING "")
+#     set(LIBCLANG_BUILD_STATIC ON CACHE BOOL "")
+#     set(CLANG_BUILD_EXAMPLES OFF CACHE BOOL "")
+#     set(CLANG_CL OFF CACHE BOOL "")
+#     set(CLANG_ENABLE_ARCMT OFF CACHE BOOL "")
+#     set(CLANG_ENABLE_STATIC_ANALYZER OFF CACHE BOOL "")
+#     set(HLSL_INCLUDE_TESTS OFF CACHE BOOL "")
+#     set(ENABLE_SPIRV_CODEGEN ON CACHE BOOL "")
+#     set(SPIRV_BUILD_TESTS OFF CACHE BOOL "")
+#     set(LLVM_ENABLE_TERMINFO OFF CACHE BOOL "")
+#     list(APPEND THIRD_PARTY_LIBRARIES DirectXShaderCompiler)
+#     add_subdirectory(DirectXShaderCompiler)
+#     set_property(TARGET DirectXShaderCompiler PROPERTY FOLDER "third_party")
+# endif()
 
 # entt
 # automatically add entt if the folder exists
@@ -261,7 +360,7 @@ endif()
 # automatically add imgui if the folder exists
 # TODO: should check for potential conflicts with cinder/imgui
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
-    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cinder)
+    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cinder OR CINDER_DISABLE_IMGUI)
         list(APPEND THIRD_PARTY_LIBRARIES imgui)
         set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
         set(IMGUI_FILES
@@ -273,11 +372,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
             "${IMGUI_DIR}/imconfig.h"
             "${IMGUI_DIR}/imgui.h"
             "${IMGUI_DIR}/imgui_internal.h"
+            "${IMGUI_DIR}/misc/cpp/imgui_stdlib.h"
+            "${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp"
             "${IMGUI_DIR}/imstb_rectpack.h"
             "${IMGUI_DIR}/imstb_textedit.h"
             "${IMGUI_DIR}/imstb_truetype.h")
         add_library(imgui STATIC ${IMGUI_FILES})
-        target_include_directories(imgui PUBLIC ${IMGUI_DIR})
+        target_include_directories(imgui PUBLIC ${IMGUI_DIR} "${IMGUI_DIR}/misc/cpp")
+        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cinder)
+            target_link_libraries(imgui PRIVATE cinder)
+        endif()
         set_property(TARGET imgui PROPERTY FOLDER "third_party")
     else()
         list(APPEND THIRD_PARTY_LIBRARIES imgui)
@@ -285,14 +389,6 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
         set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
         target_include_directories(imgui INTERFACE "${IMGUI_DIR}")
     endif()
-endif()
-
-# imgui_utils
-# automatically add imgui_utils if the folder exists
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui_utils)
-    add_subdirectory(imgui_utils)
-    list(APPEND THIRD_PARTY_LIBRARIES imgui_utils)
-    set_property(TARGET imgui_utils PROPERTY FOLDER "third_party")
 endif()
 
 # json
@@ -306,10 +402,21 @@ endif()
 
 # liveplusplus
 # add liveplusplus if the option was set and the folder exists
-if(MSVC AND ENABLE_LPP AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/liveplusplus)
-    list(APPEND THIRD_PARTY_LIBRARIES liveplusplus)
+if(MSVC AND ( ENABLE_LXX OR ENABLE_LXX_CONFIGS ) AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/liveplusplus)
+    if(ENABLE_LXX)
+        list(APPEND THIRD_PARTY_LIBRARIES liveplusplus)
+    endif()
     add_subdirectory(liveplusplus)
     set_property(TARGET liveplusplus PROPERTY FOLDER "third_party")
+endif()
+
+
+# imgui_utils
+# automatically add imgui_utils if the folder exists
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui_utils)
+    add_subdirectory(imgui_utils)
+    list(APPEND THIRD_PARTY_LIBRARIES imgui_utils)
+    set_property(TARGET imgui_utils PROPERTY FOLDER "third_party")
 endif()
 
 # pybind11
@@ -407,7 +514,7 @@ if(${REQUIRES_VULKAN})
     if(NOT CMAKE_VERSION VERSION_LESS 3.7.0)
         find_package(Vulkan)
     endif()
-    
+
 	if(NOT Vulkan_FOUND)
         find_library(VULKAN_LIBRARY NAMES vulkan-1 HINTS "$ENV{VULKAN_SDK}/Lib" "$ENV{VK_SDK_PATH}/Lib")
         if(Vulkan_LIBRARY)
@@ -430,92 +537,92 @@ set(IGNORED_LIBRARIES
     "pybind11"
 )
 
-file(GLOB POTENTIAL_LIBRARIES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
+# file(GLOB POTENTIAL_LIBRARIES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
 
-foreach(LIBRARY_DIR ${POTENTIAL_LIBRARIES})
-    # Skip if it's not a directory
-    if(NOT IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR})
-        continue()
-    endif()
+# foreach(LIBRARY_DIR ${POTENTIAL_LIBRARIES})
+#     # Skip if it's not a directory
+#     if(NOT IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR})
+#         continue()
+#     endif()
     
-    # Skip if already processed by explicit checks above
-    if(${LIBRARY_DIR} IN_LIST THIRD_PARTY_LIBRARIES)
-        continue()
-    endif()
+#     # Skip if already processed by explicit checks above
+#     if(${LIBRARY_DIR} IN_LIST THIRD_PARTY_LIBRARIES)
+#         continue()
+#     endif()
     
-    # Skip if in the ignored libraries list
-    if(${LIBRARY_DIR} IN_LIST IGNORED_LIBRARIES)
-        continue()
-    endif()
+#     # Skip if in the ignored libraries list
+#     if(${LIBRARY_DIR} IN_LIST IGNORED_LIBRARIES)
+#         continue()
+#     endif()
     
-    # Skip common non-library directories
-    if(${LIBRARY_DIR} MATCHES "^(build|cmake|docs?|examples?|tests?|samples?|tools?|scripts?)$")
-        continue()
-    endif()
+#     # Skip common non-library directories
+#     if(${LIBRARY_DIR} MATCHES "^(build|cmake|docs?|examples?|tests?|samples?|tools?|scripts?)$")
+#         continue()
+#     endif()
     
-    # Check if the directory has its own CMakeLists.txt
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/CMakeLists.txt)
-        message(STATUS "Auto-detected third-party library with CMake: ${LIBRARY_DIR}")
-        add_subdirectory(${LIBRARY_DIR})
-        list(APPEND THIRD_PARTY_LIBRARIES ${LIBRARY_DIR})
-        # Override folder property to ensure it goes into third_party folder
-        set_property(TARGET ${LIBRARY_DIR} PROPERTY FOLDER "third_party")
-        continue()
-    endif()
+#     # Check if the directory has its own CMakeLists.txt
+#     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/CMakeLists.txt)
+#         message(STATUS "Auto-detected third-party library with CMake: ${LIBRARY_DIR}")
+#         add_subdirectory(${LIBRARY_DIR})
+#         list(APPEND THIRD_PARTY_LIBRARIES ${LIBRARY_DIR})
+#         # Override folder property to ensure it goes into third_party folder
+#         set_property(TARGET ${LIBRARY_DIR} PROPERTY FOLDER "third_party")
+#         continue()
+#     endif()
     
-    # Check if the directory contains include and/or src subdirectories
-    set(HAS_INCLUDE FALSE)
-    set(HAS_SRC FALSE)
+#     # Check if the directory contains include and/or src subdirectories
+#     set(HAS_INCLUDE FALSE)
+#     set(HAS_SRC FALSE)
     
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include)
-        set(HAS_INCLUDE TRUE)
-    endif()
+#     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include)
+#         set(HAS_INCLUDE TRUE)
+#     endif()
     
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src)
-        set(HAS_SRC TRUE)
-    endif()
+#     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src)
+#         set(HAS_SRC TRUE)
+#     endif()
     
-    # Add library if it has include or src directories
-    if(HAS_INCLUDE OR HAS_SRC)
-        message(STATUS "Auto-detected third-party library: ${LIBRARY_DIR}")
+#     # Add library if it has include or src directories
+#     if(HAS_INCLUDE OR HAS_SRC)
+#         message(STATUS "Auto-detected third-party library: ${LIBRARY_DIR}")
         
-        if(HAS_SRC)
-            # Create a static library with source files
-            file(GLOB_RECURSE LIBRARY_SOURCES 
-                "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.cpp"
-                "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.c"
-                "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.cc"
-                "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.cxx"
-            )
+#         if(HAS_SRC)
+#             # Create a static library with source files
+#             file(GLOB_RECURSE LIBRARY_SOURCES 
+#                 "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.cpp"
+#                 "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.c"
+#                 "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.cc"
+#                 "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src/*.cxx"
+#             )
             
-            if(LIBRARY_SOURCES)
-                add_library(${LIBRARY_DIR} STATIC ${LIBRARY_SOURCES})
+#             if(LIBRARY_SOURCES)
+#                 add_library(${LIBRARY_DIR} STATIC ${LIBRARY_SOURCES})
                 
-                # Add include directories
-                if(HAS_INCLUDE)
-                    target_include_directories(${LIBRARY_DIR} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include")
-                endif()
+#                 # Add include directories
+#                 if(HAS_INCLUDE)
+#                     target_include_directories(${LIBRARY_DIR} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include")
+#                 endif()
                 
-                # Also include src directory for internal headers
-                target_include_directories(${LIBRARY_DIR} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src")
+#                 # Also include src directory for internal headers
+#                 target_include_directories(${LIBRARY_DIR} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/src")
                 
-                set_property(TARGET ${LIBRARY_DIR} PROPERTY FOLDER "third_party")
-            else()
-                # No source files found, create interface library
-                add_library(${LIBRARY_DIR} INTERFACE)
-                if(HAS_INCLUDE)
-                    target_include_directories(${LIBRARY_DIR} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include")
-                endif()
-            endif()
-        else()
-            # Only include directory, create interface library
-            add_library(${LIBRARY_DIR} INTERFACE)
-            target_include_directories(${LIBRARY_DIR} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include")
-        endif()
+#                 set_property(TARGET ${LIBRARY_DIR} PROPERTY FOLDER "third_party")
+#             else()
+#                 # No source files found, create interface library
+#                 add_library(${LIBRARY_DIR} INTERFACE)
+#                 if(HAS_INCLUDE)
+#                     target_include_directories(${LIBRARY_DIR} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include")
+#                 endif()
+#             endif()
+#         else()
+#             # Only include directory, create interface library
+#             add_library(${LIBRARY_DIR} INTERFACE)
+#             target_include_directories(${LIBRARY_DIR} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_DIR}/include")
+#         endif()
         
-        # Set folder property for IDE organization (works for both STATIC and INTERFACE libraries)
-        set_property(TARGET ${LIBRARY_DIR} PROPERTY FOLDER "third_party")
+#         # Set folder property for IDE organization (works for both STATIC and INTERFACE libraries)
+#         set_property(TARGET ${LIBRARY_DIR} PROPERTY FOLDER "third_party")
         
-        list(APPEND THIRD_PARTY_LIBRARIES ${LIBRARY_DIR})
-    endif()
-endforeach()
+#         list(APPEND THIRD_PARTY_LIBRARIES ${LIBRARY_DIR})
+#     endif()
+# endforeach()

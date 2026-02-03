@@ -30,24 +30,30 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-set cmake_args=-UENABLE_LPP
+set cmake_args=-UENABLE_LXX
+set cmake_quiet_args=--log-level=ERROR -Wno-dev
 
 @rem parsing arguments
 @rem -----------------------------------
 :parse_args
 if "%~1" == "" goto end_parse_args
-if "%~1" == "live++" set cmake_args=%cmake_args% -DENABLE_LPP=ON
-if "%~1" == "liveplusplus" set cmake_args=%cmake_args% -DENABLE_LPP=ON
+if "%~1" == "live++" set cmake_args=%cmake_args% -DENABLE_LXX=ON
+if "%~1" == "live++_configs" set cmake_args=%cmake_args% -DENABLE_LXX_CONFIGS=ON
+if "%~1" == "liveplusplus" set cmake_args=%cmake_args% -DENABLE_LXX=ON
+if "%~1" == "lxx" set cmake_args=%cmake_args% -DENABLE_LXX=ON
+if "%~1" == "lxx_configs" set cmake_args=%cmake_args% -DENABLE_LXX_CONFIGS=ON
 if "%~1" == "clean" set cmake_args=%cmake_args% --fresh
+if "%~1" == "verbose" set cmake_quiet_args=
 SHIFT
 goto parse_args
 :end_parse_args
 
 @rem run cmake
 @rem -----------------------------------
-cmake -S . -B ./build -G "Visual Studio 17 2022" -A x64 !cmake_args!
+cmake -S . -B ./build -G "Visual Studio 17 2022" -A x64 !cmake_quiet_args! !cmake_args!
 
 @rem end
 @rem -----------------------------------
 :end
 set cmake_args = 
+set cmake_quiet_args = 

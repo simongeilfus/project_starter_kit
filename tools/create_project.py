@@ -59,6 +59,7 @@ args = parser.parse_args()
 # make sure the project doesn't exist
 project_name = args.project_name
 project_dir = os.path.join( projects_dir, project_name )
+project_base_name = os.path.basename( project_name )
 if os.path.exists( project_dir ):
     print( "Project %s already exists" % project_name )
     exit()
@@ -105,21 +106,23 @@ def replace_template_content( src_path ):
     with open( src_path, 'r' ) as file :
         project_file = file.read()
     # Replace the target string
-    project_file = project_file.replace( 'TEMPLATE', project_name )
+    project_file = project_file.replace( 'TEMPLATE', project_base_name )
     # Write the file out again
     with open( src_path, 'w' ) as file:
         file.write( project_file )
 
 if os.path.exists( os.path.join( project_include_dir, "template.h" ) ):
-    os.rename( os.path.join( project_include_dir, "template.h" ), os.path.join( project_include_dir, project_name + ".h" ) )
-    replace_template_content( os.path.join( project_include_dir, project_name + ".h" ) )
+    os.rename( os.path.join( project_include_dir, "template.h" ), os.path.join( project_include_dir, project_base_name + ".h" ) )
+    replace_template_content( os.path.join( project_include_dir, project_base_name + ".h" ) )
 
-os.rename( os.path.join( project_src_dir, "template.cpp" ), os.path.join( project_src_dir, project_name + ".cpp" ) )
-replace_template_content( os.path.join( project_src_dir, project_name + ".cpp" ) )
+os.rename( os.path.join( project_src_dir, "template.cpp" ), os.path.join( project_src_dir, project_base_name + ".cpp" ) )
+replace_template_content( os.path.join( project_src_dir, project_base_name + ".cpp" ) )
 
 print( "New %s project created at %s" % ( args.template, project_dir ) )
-  
+
 if args.configureplusplus :
-    os.system( 'configure.bat live++' )
+    configure_path = os.path.join( os.path.dirname( os.path.dirname( __file__ ) ), 'configure.bat' )
+    subprocess.call( [configure_path, 'live++'], shell=True )
 if args.configure :
-    os.system( 'configure.bat' )
+    configure_path = os.path.join( os.path.dirname( os.path.dirname( __file__ ) ), 'configure.bat' )
+    subprocess.call( [configure_path], shell=True )
