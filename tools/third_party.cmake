@@ -413,7 +413,7 @@ endif()
 
 # imgui_utils
 # automatically add imgui_utils if the folder exists
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui_utils)
+if(NOT TARGET imgui_utils AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui_utils)
     add_subdirectory(imgui_utils)
     list(APPEND THIRD_PARTY_LIBRARIES imgui_utils)
     set_property(TARGET imgui_utils PROPERTY FOLDER "third_party")

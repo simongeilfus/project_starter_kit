@@ -100,6 +100,22 @@ if %commandc% lss 1 (
     )
 )
 
+@rem check the working dir is a git repo (only matters if we're about to run git commands)
+@rem -----------------------------------
+if %needs_submodule_init% neq 1 goto skip_git_check
+git rev-parse --is-inside-work-tree >nul 2>&1
+if not errorlevel 1 goto skip_git_check
+echo:
+echo   This directory is not a git repository, but the requested setup needs one
+echo   to add submodules.
+echo:
+choice /C YN /M "Initialize a new git repository here with 'git init'? "
+if errorlevel 2 goto end
+echo:
+git init
+echo:
+:skip_git_check
+
 @rem print commands
 @rem -----------------------------------
 echo This script will generate the following commands:
