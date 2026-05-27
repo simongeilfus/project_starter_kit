@@ -106,6 +106,7 @@ if( SOURCES )
         )
     else()
         target_link_libraries(${PROJECT} PUBLIC ${THIRD_PARTY_LIBRARIES})
+    endif()
     # move libs into folders
     set_property(TARGET ${PROJECT} PROPERTY FOLDER "${PROJECT}")
     # match directory structure

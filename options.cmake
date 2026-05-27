@@ -42,5 +42,6 @@ set(OS_BUNDLE AUTO)
 set(PROJECTS_DIRECTORY projects)
 set(THIRD_PARTY_DIRECTORY third_party)
 
-# by default Live++ is disabled and can be turned on by calling "configure live++"
-option(ENABLE_LPP "Enable Live++" OFF)
+# by default Live++ is disabled and can be turned on by calling "configure lxx"
+option(ENABLE_LXX "Enable Live++" OFF)
+option(ENABLE_LXX_CONFIGS "Enable Live++ as additional build configurations (DebugLxx/ReleaseLxx)" OFF)

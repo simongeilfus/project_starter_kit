@@ -3,6 +3,12 @@
 cmake-build-*
 imgui.ini
 .DS_Store
+.vs/
+.vscode/
+*.vcxproj.user
+x64/
+settings.local.json
+*__pycache__
 
 # project_starter_kit dev helpers
 # .gitmodules

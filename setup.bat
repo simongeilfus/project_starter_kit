@@ -40,6 +40,24 @@ for %%x in (%*) do (
    set "argv[!argc!]=%%~x"
 )
 
+@rem prompt to rename the project if options.cmake still has the default name
+@rem -----------------------------------
+findstr /C:"set(PROJECT project_starter_kit)" "%~dp0options.cmake" >nul 2>&1
+if errorlevel 1 goto skip_project_rename
+echo:
+echo   The project name in options.cmake is still "project_starter_kit".
+set "new_project_name="
+set /p "new_project_name=  Enter a new project name (leave blank to keep default): "
+if not defined new_project_name goto skip_project_rename
+powershell -NoProfile -Command "(Get-Content -Raw -LiteralPath '%~dp0options.cmake') -replace 'set\(PROJECT project_starter_kit\)', 'set(PROJECT %new_project_name%)' | Set-Content -NoNewline -Encoding ASCII -LiteralPath '%~dp0options.cmake'"
+if errorlevel 1 (
+    echo   Warning: failed to update options.cmake.
+) else (
+    echo   options.cmake updated: PROJECT = %new_project_name%
+)
+echo:
+:skip_project_rename
+
 @rem no argument message
 @rem -----------------------------------
 if %argc% lss 1 goto print_help
@@ -99,6 +117,22 @@ if %commandc% lss 1 (
         set "commandv[!commandc!]=git submodule update --init --recursive"
     )
 )
+
+@rem check the working dir is a git repo (only matters if we're about to run git commands)
+@rem -----------------------------------
+if %needs_submodule_init% neq 1 goto skip_git_check
+git rev-parse --is-inside-work-tree >nul 2>&1
+if not errorlevel 1 goto skip_git_check
+echo:
+echo   This directory is not a git repository, but the requested setup needs one
+echo   to add submodules.
+echo:
+choice /C YN /M "Initialize a new git repository here with 'git init'? "
+if errorlevel 2 goto end
+echo:
+git init
+echo:
+:skip_git_check
 
 @rem print commands
 @rem -----------------------------------

@@ -30,7 +30,12 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
     file(GLOB_RECURSE PROJECT_SOURCE_FILES ${PROJECT_DIR}/*.cpp ${PROJECT_DIR}/*.h)
     file(GLOB_RECURSE PROJECT_RESOURCES_FILES ${PROJECT_DIR}/*.qrc)
     file(GLOB_RECURSE PROJECT_UI_FILES ${PROJECT_DIR}/*.ui)
-    
+    # Windows resource files (e.g. resources/Resources.rc with `1 ICON "app.ico"` for the app icon)
+    if(WIN32)
+        file(GLOB PROJECT_RC_FILES ${PROJECT_DIR}/resources/*.rc)
+        file(GLOB PROJECT_ICO_FILES ${PROJECT_DIR}/resources/*.ico)
+    endif()
+
     # find the right OS_BUNDLE type
     if( ${OS_BUNDLE} MATCHES AUTO )
         if( WIN32 )
@@ -48,7 +53,16 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
     # regular project
     else()
         # add the default add_executable
-        add_executable(${PROJECT_TARGET} ${PROJECT_OS_BUNDLE} ${PROJECT_SOURCE_FILES} ${PROJECT_UI_FILES} ${PROJECT_RESOURCES_FILES})
+        add_executable(${PROJECT_TARGET} ${PROJECT_OS_BUNDLE} ${PROJECT_SOURCE_FILES} ${PROJECT_UI_FILES} ${PROJECT_RESOURCES_FILES} ${PROJECT_RC_FILES} ${PROJECT_ICO_FILES})
+
+        # group .rc/.ico under "Resource Files" and exclude .ico from build (referenced by .rc)
+        foreach(RC ${PROJECT_RC_FILES})
+            source_group("Resource Files" FILES ${RC})
+        endforeach()
+        foreach(ICO ${PROJECT_ICO_FILES})
+            source_group("Resource Files" FILES ${ICO})
+            set_property(SOURCE ${ICO} PROPERTY VS_SETTINGS "ExcludedFromBuild=true")
+        endforeach()
 
         # include project.cmake if any
         if(EXISTS ${PROJECT_DIR}/project.cmake)
@@ -146,46 +160,31 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
             endforeach()
             
             get_filename_component( ASSETS_DEST_PATH "${PROJECT_OUTPUT_DIR}/assets" ABSOLUTE )
-            
-            if( EXISTS "${ASSETS_DEST_PATH}" )
-                file( REMOVE_RECURSE "${ASSETS_DEST_PATH}" )
-            endif()
-
-            # Get OS dependent path to use in `execute_process`
             file( TO_NATIVE_PATH "${ASSETS_DEST_PATH}" link )
             file( TO_NATIVE_PATH "${ASSETS_DIR}" target )
-            set( link_cmd cmd.exe /c mklink /J ${link} ${target} )
 
-            # it appears the file( REMOVE_RECURSE ) command above doesn't work with windows junctions,
-            # so remove it using a native command if it still exists.
-            if( EXISTS "${ASSETS_DEST_PATH}" )
-                message( WARNING "assets path still exists, attempting to remove it again.." )
-                set( rmdir_cmd cmd.exe /c rmdir ${link} )
+            # Only (re)create the junction if it isn't already there — running mklink
+            # every reconfigure pollutes the log with "Junction created for ..." even
+            # in --log-level=ERROR mode. If the source path changes, clean the build dir.
+            if( NOT EXISTS "${ASSETS_DEST_PATH}" OR NOT IS_SYMLINK "${ASSETS_DEST_PATH}" )
+                # plain directory (not a junction): remove first so mklink can replace it
+                if( EXISTS "${ASSETS_DEST_PATH}" )
+                    file( REMOVE_RECURSE "${ASSETS_DEST_PATH}" )
+                endif()
+
+                file( MAKE_DIRECTORY "${PROJECT_OUTPUT_DIR}" )
+
                 execute_process(
-                    COMMAND ${rmdir_cmd}
+                    COMMAND cmd.exe /c mklink /J ${link} ${target}
                     RESULT_VARIABLE resultCode
+                    OUTPUT_QUIET
                     ERROR_VARIABLE errorMessage
                 )
 
                 if( NOT resultCode EQUAL 0 )
-                    message( WARNING "\nFailed to rmdir '${ASSETS_DIR}'" )
+                    message( WARNING "Failed to symlink '${ASSETS_DIR}' to '${ASSETS_DEST_PATH}': ${errorMessage}" )
                 endif()
             endif()
-
-            # Ensure the target output directory exists
-            file(MAKE_DIRECTORY "${PROJECT_OUTPUT_DIR}")
-
-            # make a windows symlink using mklink
-            execute_process(
-                COMMAND ${link_cmd}
-                RESULT_VARIABLE resultCode
-                ERROR_VARIABLE errorMessage
-            )
-
-            if( NOT resultCode EQUAL 0 )
-                message( WARNING "\nFailed to symlink '${ASSETS_DIR}' to '${ASSETS_DEST_PATH}', result: ${resultCode} error: ${errorMessage}" )
-            endif()
-            #endif()
             
             # file(TO_NATIVE_PATH ${PROJECT_OUTPUT_DIR}/assets ASSETS_DIR_SYM_LINK)
             #file(TO_NATIVE_PATH ${ASSETS_DIR} ASSETS_DIR_PATH)
@@ -225,6 +224,7 @@ function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
         if(NOT src MATCHES "^${PROJECT_DIR}")
             list(APPEND THIRD_PARTY_SOURCES ${src})
         endif()
+    endforeach()
 
     # match folder structure of source files
     foreach(source IN ITEMS ${PROJECT_SOURCE_FILES})
