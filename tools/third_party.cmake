@@ -419,6 +419,14 @@ if(NOT TARGET imgui_utils AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui_utils)
     set_property(TARGET imgui_utils PROPERTY FOLDER "third_party")
 endif()
 
+# Cinder-Rive
+# Added after imgui_utils so Cinder-Rive's optional imgui_utils dependency
+# (and the samples that need it) can pick up the target.
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Cinder-Rive)
+    list(APPEND THIRD_PARTY_LIBRARIES Cinder-Rive)
+    add_subdirectory(Cinder-Rive)
+endif()
+
 # pybind11
 # automatically add pybind11 if the folder exists
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/pybind11)
