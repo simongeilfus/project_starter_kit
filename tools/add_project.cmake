@@ -26,7 +26,15 @@
 function(add_project PROJECT_TARGET DEST_FOLDER_NAME)
     # collect project folders and sources
     set(PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_TARGET})
-    set(PROJECT_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/${DEST_FOLDER_NAME}/${PROJECT_TARGET})
+    # output to <repo>/bin/<group>/<project>, mirroring the projects/ hierarchy.
+    # strip the leading "projects" segment so "projects" -> bin/<project> and
+    # "projects/local" -> bin/local/<project>
+    string(REGEX REPLACE "^projects/?" "" OUTPUT_SUBDIR "${DEST_FOLDER_NAME}")
+    set(PROJECT_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/bin)
+    if(NOT OUTPUT_SUBDIR STREQUAL "")
+        set(PROJECT_OUTPUT_DIR ${PROJECT_OUTPUT_DIR}/${OUTPUT_SUBDIR})
+    endif()
+    set(PROJECT_OUTPUT_DIR ${PROJECT_OUTPUT_DIR}/${PROJECT_TARGET})
     file(GLOB_RECURSE PROJECT_SOURCE_FILES ${PROJECT_DIR}/*.cpp ${PROJECT_DIR}/*.h)
     file(GLOB_RECURSE PROJECT_RESOURCES_FILES ${PROJECT_DIR}/*.qrc)
     file(GLOB_RECURSE PROJECT_UI_FILES ${PROJECT_DIR}/*.ui)
